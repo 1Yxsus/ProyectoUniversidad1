@@ -1,0 +1,3 @@
+flet>=0.21.0
+mysql-connector-python>=8.0.33
+python-decouple>=3.8

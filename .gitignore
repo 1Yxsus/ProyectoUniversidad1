@@ -1,0 +1,21 @@
+# Ignorar variables de entorno
+.env
+
+# Ignorar archivos temporales
+*.log
+*.tmp
+
+# Ignorar archivos de Python
+__pycache__/
+*.pyc
+
+# Ignorar archivos de VSCode
+.vscode/
+
+# Ignorar carpetas de dependencias
+node_modules/
+venv/
+
+# Ignorar archivos del sistema
+.DS_Store
+Thumbs.db
