@@ -1,3 +1,7 @@
+# ------------------------------------------------------------
+# CONECTA A LA BASE DE DATOS MYSQL USANDO VARIABLES DE ENTORNO
+# ------------------------------------------------------------
+
 # app/models/database.py
 import os
 import mysql.connector

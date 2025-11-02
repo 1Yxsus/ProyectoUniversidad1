@@ -1,7 +1,7 @@
 import flet as ft
 from app.controllers.auth_controller import register_user
 from app.components.to_home import BotonHome
-from app.models.database import get_connection
+from app.utils.database import get_connection
 import mysql.connector
 
 def RegisterView(page: ft.Page):

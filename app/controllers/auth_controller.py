@@ -1,4 +1,4 @@
-from app.models.database import get_connection
+from app.utils.database import get_connection
 import re
 
 def authenticate_user(correo, password):
