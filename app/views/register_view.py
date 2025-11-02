@@ -1,8 +1,6 @@
 import flet as ft
-from app.controllers.auth_controller import register_user
+from app.controllers.usuario_controller import register_user
 from app.components.to_home import BotonHome
-from app.utils.database import get_connection
-import mysql.connector
 
 def RegisterView(page: ft.Page):
 
@@ -41,57 +39,7 @@ def RegisterView(page: ft.Page):
                                    label_style=ft.TextStyle(color=ft.Colors.BLUE_GREY))
 
     mensaje_error = ft.Text("", color=ft.Colors.RED_400, size=13)
-
-    # def registrar_usuario(e):
-    #     apellido = apellido_input.value.strip() if apellido_input.value else ""
-    #     nombre = nombre_input.value.strip() if nombre_input.value else ""
-    #     correo = correo_input.value.strip() if correo_input.value else ""
-    #     contrasena = contrasena_input.value.strip() if contrasena_input.value else ""
-    #     confirmar = confirmar_input.value.strip() if confirmar_input.value else ""
-
-    #     if not apellido or not nombre or not correo or not contrasena or not confirmar:
-    #         mensaje_error.value = "Por favor, complete todos los campos."
-    #         page.update()
-    #         return
-
-    #     if contrasena != confirmar:
-    #         mensaje_error.value = "Las contraseñas no coinciden."
-    #         page.update()
-    #         return
-
-    #     try:
-    #         db = get_connection()
-    #         cursor = db.cursor()
-
-    #         cursor.execute("SELECT * FROM usuarios WHERE correo = %s", (correo,))
-    #         if cursor.fetchone():
-    #             mensaje_error.value = "⚠ El correo ya está registrado"
-    #             page.update()
-    #             cursor.close()
-    #             db.close()
-    #             return
-
-    #         cursor.execute("""
-    #             INSERT INTO usuario (nombre, apellido, correo, contraseña)
-    #             VALUES (%s, %s, %s, %s)
-    #         """, (nombre, apellido, correo, contrasena))
-    #         db.commit()
-    #         cursor.close()
-    #         db.close()
-
-    #         snack_bar = ft.SnackBar(
-    #             content=ft.Text("Registro exitoso ✅"),
-    #             bgcolor=ft.Colors.GREEN_700
-    #         )
-    #         page.overlay.append(snack_bar)
-    #         snack_bar.open = True
-    #         page.update()
-    #         page.go("/login")
-
-    #     except Exception as ex:
-    #         mensaje_error.value = f"Error al registrar: {str(ex)}"
-    #         page.update()
-
+    
     def registrar_usuario(e):
         apellido = apellido_input.value.strip() if apellido_input.value else ""
         nombre = nombre_input.value.strip() if nombre_input.value else ""

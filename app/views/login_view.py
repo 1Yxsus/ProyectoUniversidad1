@@ -1,5 +1,5 @@
 import flet as ft
-from app.controllers.auth_controller import authenticate_user
+from app.controllers.usuario_controller import authenticate_user
 from app.components.to_home import BotonHome
 
 def LoginView(page: ft.Page):

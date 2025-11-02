@@ -9,11 +9,14 @@ def DashboardView(page: ft.Page, username: str = "Estudiante UNFV"):
         page.go("/login")
         return
 
-    id = user["id_usuario"]
+    _id = user["id_usuario"]
     nombre = user["nombre"]
     apellido = user["apellido"]
-    correo = user["correo"]
-    fecha = user["fecha_registro"]
+    _correo = user["correo"]
+    _fecha = user["fecha_registro"]
+
+    # mostrar nombre completo en la barra lateral (sobrescribe el parámetro opcional)
+    username = f"{nombre} {apellido}"
 
     # --- CONFIGURACIÓN GENERAL ---
     page.bgcolor = ft.Colors.BLACK

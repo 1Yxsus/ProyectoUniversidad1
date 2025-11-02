@@ -1,4 +1,5 @@
 import flet as ft
+from app.controllers.aulas_controller import obtener_aulas
 
 def AulaDashboardView(page: ft.Page):
     # --- Información de usuario ---
@@ -22,13 +23,14 @@ def AulaDashboardView(page: ft.Page):
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
 
+    
     # --- DESPLEGABLE DE AULA ---
     dropdown_aula = ft.Dropdown(
         value="Aula 365",
         options=[
-            ft.dropdown.Option("Aula 365"),
-            ft.dropdown.Option("Aula 202"),
-            ft.dropdown.Option("Aula 101"),
+
+            ft.dropdown.Option(aula_datos["nombre_aula"]) for aula_datos in obtener_aulas(user["id_usuario"])
+
         ],
         bgcolor="#111111",
         color=ft.Colors.WHITE,
@@ -145,6 +147,7 @@ def AulaDashboardView(page: ft.Page):
 
     # Creamos tarjetas
     cards = [
+        course_card("Programación Aplicada"),
         course_card("Programación Aplicada"),
         course_card("Base de Datos"),
         course_card("Ingeniería de Software"),

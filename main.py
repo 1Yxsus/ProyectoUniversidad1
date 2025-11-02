@@ -6,8 +6,9 @@ from app.views.dashboard_view import DashboardView
 from app.views.options_view import DashboardOptionsView
 from app.views.aula_dashboard import AulaDashboardView
 
+
 def main(page: ft.Page):
-    
+
     def route_change(route):
         page.views.clear()
 

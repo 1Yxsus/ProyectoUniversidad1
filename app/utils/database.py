@@ -1,34 +1,23 @@
-# ------------------------------------------------------------
-# CONECTA A LA BASE DE DATOS MYSQL USANDO VARIABLES DE ENTORNO
-# ------------------------------------------------------------
-
-# app/models/database.py
-import os
 import mysql.connector
+from mysql.connector import Error
 from decouple import config, UndefinedValueError
 
-def get_connection():
-    try:
-        host = config("DB_HOST")
-        user = config("DB_USER")
-        password = config("DB_PASS")
-        database = config("DB_NAME")
-        port = int(config("DB_PORT", default=3306))
-    except UndefinedValueError:
-        host = os.getenv("DB_HOST")
-        user = os.getenv("DB_USER")
-        password = os.getenv("DB_PASS")
-        database = os.getenv("DB_NAME")
-        port = int(os.getenv("DB_PORT", 3306))
+class DatabaseConnection:
+    def __init__(self):
+        self.host = config("DB_HOST")
+        self.user = config("DB_USER")
+        self.password = config("DB_PASS")
+        self.database = config("DB_NAME")
 
-    try:
-        return mysql.connector.connect(
-            host=host,
-            user=user,
-            password=password,
-            database=database,
-            port=port,
-            connection_timeout=10
-        )
-    except mysql.connector.Error as e:
-        raise RuntimeError(f"MySQL connection failed: {e}") from e
+    def connect(self):
+        try:
+            connection = mysql.connector.connect(
+                host=self.host,
+                user=self.user,
+                password=self.password,
+                database=self.database
+            )
+            return connection
+        except Error as e:
+            print(f"Error al conectar con MySQL: {e}")
+            return None
