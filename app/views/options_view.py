@@ -73,21 +73,45 @@ def DashboardOptionsView(page: ft.Page):
 
     def cerrar_modal(e):
         modal_container.visible = False
-        # Opcional: limpiar campos al cerrar
+        # Limpiar campos y errores al cerrar
         nombre_aula.value = ""
         descripcion.value = ""
+        nombre_aula.error_text = None
+        descripcion.error_text = None
         page.update()
 
     def crear_aula(e):
+        valid = True
 
-        crear_aulas(nombre_aula.value, descripcion.value, id)
-        print(f"Aula Creada: {nombre_aula.value}")
-        
-        # Mostrar SnackBar (copiado de tu lógica original)
-        page.snack_bar.content = ft.Text(f"Aula '{nombre_aula.value}' creada")
+        if not nombre_aula.value or not nombre_aula.value.strip():
+            nombre_aula.error_text = "Campo requerido"
+            valid = False
+        else:
+            nombre_aula.error_text = None
+
+        if not descripcion.value or not descripcion.value.strip():
+            descripcion.error_text = "Campo requerido"
+            valid = False
+        else:
+            descripcion.error_text = None
+
+        page.update()
+
+        if not valid:
+            return
+
+        # Llamar al controlador (usa la tupla (success, msg) que retorna crear_aulas)
+        success, msg = crear_aulas(nombre_aula.value.strip(), descripcion.value.strip(), id)
+        if not success:
+            # Mostrar error en SnackBar
+            page.snack_bar.content = ft.Text(f"Error: {msg}")
+            page.snack_bar.open = True
+            page.update()
+            return
+
+        # Éxito
+        page.snack_bar.content = ft.Text(f"Aula '{nombre_aula.value.strip()}' creada")
         page.snack_bar.open = True
-        
-        # Cerrar el modal
         cerrar_modal(e)
 
     # --- Botones del modal (Reutilizados y adaptados) ---
@@ -112,7 +136,7 @@ def DashboardOptionsView(page: ft.Page):
     
     form_container = ft.Container(
         width=700,  # más ancho para forma rectangular
-        height=400,
+        height=350,
         bgcolor="#121212",
         border=ft.border.all(1, "#222222"),
         border_radius=12,
@@ -133,10 +157,9 @@ def DashboardOptionsView(page: ft.Page):
                 # Inputs (ocupando todo el ancho disponible del formulario)
                 ft.Column(
                     [
-                        ft.Text("Nombre del Aula:", weight=ft.FontWeight.BOLD),
+                        # ft.Text("Nombre del Aula:", weight=ft.FontWeight.BOLD),
                         ft.Container(content=nombre_aula, width=640),
-                        ft.Container(height=8),
-                        ft.Text("Descripción:", weight=ft.FontWeight.BOLD),
+                        # ft.Text("Descripción:", weight=ft.FontWeight.BOLD),
                         ft.Container(content=descripcion, width=640, height=70),
                     ],
                     spacing=12,

@@ -21,7 +21,7 @@ def HomeView(page: ft.Page):
 
     # Imagen principal de presentación (puedes colocar la ruta o URL)
     imagen_principal = ft.Image(
-        src="assets/images/lucho.jpg",  # 👈 cambia aquí
+        src="assets/images/image.jpg",  # 👈 cambia aquí
         width=450,
         height=250,
         fit=ft.ImageFit.CONTAIN,

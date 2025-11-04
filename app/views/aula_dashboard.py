@@ -1,5 +1,6 @@
 import flet as ft
 from app.controllers.aulas_controller import obtener_aulas
+from app.controllers.cursos_controller import crear_curso, obtener_cursos, actualizar_curso
 
 def AulaDashboardView(page: ft.Page):
     # --- Información de usuario ---
@@ -15,29 +16,182 @@ def AulaDashboardView(page: ft.Page):
     correo = user["correo"]
     fecha = user["fecha_registro"]
 
+# ------------------------------------------------------
+# Funciones Generales
+# ----------------------------------------------------
 
+    # estado para edición
+    edit_mode = False
+    editing_course_id = None
+
+    def abrir_modal_para_editar(curso_dict):
+        """
+        Abre el modal y carga los datos del curso seleccionado.
+        curso_dict: diccionario con al menos los campos identificadores y los nombres.
+        """
+        nonlocal edit_mode, editing_course_id
+        # extraer id seguro
+        editing_course_id = curso_dict.get("id_curso")
+        nombre_curso.value = curso_dict.get("curso")
+        docente.value = curso_dict.get("docente") or curso_dict.get("nombre_docente") or ""
+        delegado.value = str(curso_dict.get("delegado_id") or curso_dict.get("id_delegado") or curso_dict.get("delegado") or "")
+
+        edit_mode = True
+        # actualizar UI del modal (titulo y botón)
+        try:
+            modal_title.value = "EDITAR CURSO"
+        except Exception:
+            pass
+        try:
+            btn_crear_modal.text = "GUARDAR"
+        except Exception:
+            pass
+        modal_container.visible = True
+        page.update()
+
+    def cargar_cursos_por_aula(id_aula):
+        cursos_list = obtener_cursos(selected_id)
+        cards = [ course_card(c) for c in cursos_list ]
+
+        cursos_grid = course_grid(cards, max_per_row=4)
+        content.content.controls[2] = cursos_grid
+
+    def actualizar_contenido(texto):
+        actualizar_titulo(texto)
+
+        if texto == "Cursos":
+            cargar_cursos_por_aula(selected_id)
+        elif texto == "Anuncios":
+            content.content.controls[2] = ft.Text("Sección de Anuncios en construcción...", color=ft.Colors.WHITE)
+        
+        page.update()
+
+    selected_id = None
+
+    def on_aula_change(e):
+        # e.control.value o dropdown_aula.value devuelve la 'key' (id) que asignamos
+        nonlocal selected_id
+        selected_id = int(e.control.value) if e.control and e.control.value else None
+        print("Aula seleccionada id:", selected_id)
+
+        cursos_list = obtener_cursos(selected_id)
+
+        if not cursos_list:
+            print("No hay cursos para el aula seleccionada.")
+            content.content.controls[2] = ft.Text("No hay cursos disponibles para esta aula.", color=ft.Colors.WHITE)
+            page.update()
+            return
+
+        cargar_cursos_por_aula(selected_id)
+        page.update()
+
+    def actualizar_titulo(texto):
+        titulo_header.value = texto
+        page.update()
 
     # --- CONFIGURACIÓN GENERAL ---
     page.bgcolor = "#000000"
     page.title = "Aula 365 | Cursos"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
+    
 
+    list_aulas = obtener_aulas(id)
     
     # --- DESPLEGABLE DE AULA ---
     dropdown_aula = ft.Dropdown(
-        value="Aula 365",
+        value=str(list_aulas[0]["id_aula"]) if list_aulas else None,  # <-- usar id como value
         options=[
-
-            ft.dropdown.Option(aula_datos["nombre_aula"]) for aula_datos in obtener_aulas(user["id_usuario"])
-
+            ft.dropdown.Option(
+                key=str(a['id_aula']),
+                text=f"{a['nombre_aula']} - {a['id_aula']}"
+            ) for a in list_aulas
         ],
-        bgcolor="#111111",
         color=ft.Colors.WHITE,
         border_color="#333333",
         focused_border_color="#555555",
         width=150,
     )
+
+# ------------------------------------------------------
+# ---------------- TARJETA DE CURSO --------------------
+# ------------------------------------------------------
+
+    def course_card(curso_dict):
+        # acepta un dict de curso y construye la tarjeta + botón editar
+        nombre = curso_dict.get("curso")
+        docente = curso_dict.get("docente")
+        delegado = curso_dict.get("delegado")
+
+        return ft.Container(
+            content=ft.Column(
+                [
+                    ft.Row(
+                        [
+                            # El nombre ocupa el espacio disponible y hace wrap (max_lines controla líneas)
+                            ft.Container(
+                                expand=True,
+                                content=ft.Text(
+                                    nombre,
+                                    size=18,
+                                    weight=ft.FontWeight.W_600,
+                                    color=ft.Colors.WHITE,
+                                    max_lines=3,                       # ajustar a tus necesidades
+                                    overflow=ft.TextOverflow.ELLIPSIS  # evita que el texto empuje el icono
+                                ),
+                            ),
+                            # Icono siempre alineado a la derecha y con tamaño fijo
+                            ft.IconButton(
+                                icon=ft.Icons.EDIT,
+                                icon_color=ft.Colors.WHITE,
+                                on_click=lambda e, c=curso_dict: abrir_modal_para_editar(c),
+                                tooltip="Editar curso"
+                            ),
+                        ],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    ),
+                    ft.Text(f"Docente: {docente}", color="#AAAAAA", size=14),
+                    ft.Text(f"Delegado: {delegado}", color="#AAAAAA", size=14),
+                ],
+                # distribuir el contenido para que la tarjeta mantenga aspecto uniforme
+                spacing=6,
+                alignment=ft.MainAxisAlignment.START,
+            ),
+            width=320,
+            # fijar altura para que todas las tarjetas de la misma fila tengan igual tamaño
+            height=160,
+            bgcolor="#1A1A1A",
+            border_radius=12,
+            padding=15,
+            ink=True,
+            on_click=lambda e, n=nombre: print(f"Abrir curso: {n}"),
+        )
+
+    # --- SIMULACIÓN DE GRID SIN WRAP ---
+    # Creamos filas manualmente con Row dentro de un Column
+    def course_grid(cards, max_per_row=3):
+        rows = []
+        for i in range(0, len(cards), max_per_row):
+            fila = ft.Row(
+                cards[i:i+max_per_row],
+                spacing=20,
+                alignment=ft.MainAxisAlignment.START,
+            )
+            rows.append(fila)
+
+        return ft.Container(
+            content=ft.Column(
+                rows,
+                spacing=20,
+                alignment=ft.MainAxisAlignment.START,
+            ),
+        )
+    
+    cursos_grid = course_grid([], max_per_row=4)
+      
+# ------------------------------------------------------
+# ---------------- ASIDE SECTION -----------------------
+# ------------------------------------------------------
 
     # --- USUARIO (ICONO Y NOMBRE) ---
     user_info = ft.Column(
@@ -51,7 +205,8 @@ def AulaDashboardView(page: ft.Page):
     )
 
     # --- BOTONES DE MENÚ IZQUIERDO ---
-    def side_button(text, route):
+
+    def side_button(text):
         return ft.Container(
             content=ft.Text(text, color=ft.Colors.WHITE, size=18),
             width=150,
@@ -60,11 +215,11 @@ def AulaDashboardView(page: ft.Page):
             bgcolor="#1B1B1B",
             border_radius=10,
             ink=True,
-            on_click=lambda e: page.go(route),
+            on_click= lambda e: actualizar_contenido(text)
         )
 
-    btn_cursos = side_button("Cursos", "/cursos")
-    btn_anuncios = side_button("Anuncios", "/anuncios")
+    btn_cursos = side_button("Cursos")
+    btn_anuncios = side_button("Anuncios")
 
     btn_logout = ft.Container(
         content=ft.Text("Cerrar Sesión", color=ft.Colors.WHITE, size=18),
@@ -98,65 +253,212 @@ def AulaDashboardView(page: ft.Page):
         ),
     )
 
-    # --- TARJETA DE CURSO ---
-    def course_card(nombre="Nombre Del Curso"):
-        return ft.Container(
-            content=ft.Column(
-                [
-                    ft.Row(
-                        [
-                            ft.Text(nombre, size=18, weight=ft.FontWeight.W_600, color=ft.Colors.WHITE),
-                            ft.Icon(ft.Icons.EDIT, color=ft.Colors.WHITE, size=18),
-                        ],
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    ),
-                    ft.Text("Docente: Apellido Nombre", color="#AAAAAA", size=14),
-                    ft.Text("Delegado: Apellido Nombre", color="#AAAAAA", size=14),
-                ],
-                alignment=ft.MainAxisAlignment.START,
-                spacing=5,
-            ),
-            width=320,
-            height=150,
-            bgcolor="#1A1A1A",
-            border_radius=12,
-            padding=15,
-            ink=True,
-            on_click=lambda e: print(f"Abrir curso: {nombre}"),
-        )
 
-    # --- SIMULACIÓN DE GRID SIN WRAP ---
-    # Creamos filas manualmente con Row dentro de un Column
-    def course_grid(cards, max_per_row=3):
-        rows = []
-        for i in range(0, len(cards), max_per_row):
-            fila = ft.Row(
-                cards[i:i+max_per_row],
-                spacing=20,
-                alignment=ft.MainAxisAlignment.START,
-            )
-            rows.append(fila)
+# ------------------------------------------------------
+# ------------------ MODAL CREAR CURSO ------------------
+# ------------------------------------------------------
 
-        return ft.Container(
-            content=ft.Column(
-                rows,
-                spacing=20,
-                alignment=ft.MainAxisAlignment.START,
-            ),
-        )
+    # --- TextFields del modal (Reutilizados) ---
+    nombre_curso = ft.TextField(
+        label="Nombre del Curso:",
+        hint_text="Ejemplo: AULA 203",
+        bgcolor="#1E1E1E",
+        border_radius=10,
+        border_color=ft.Colors.TRANSPARENT,
+    )
 
-    # Creamos tarjetas
-    cards = [
-        course_card("Programación Aplicada"),
-        course_card("Programación Aplicada"),
-        course_card("Base de Datos"),
-        course_card("Ingeniería de Software"),
-        course_card("Algoritmos Avanzados"),
-        course_card("Matemática Discreta"),
-        course_card("Redes de Computadoras"),
-    ]
+    docente = ft.TextField(
+        label="Docente:",
+        hint_text="Máximo 200 caracteres",
+        bgcolor="#1E1E1E",
+        border_radius=10,
+        border_color=ft.Colors.TRANSPARENT,
+        multiline=True,
+    )
 
-    cursos_grid = course_grid(cards, max_per_row=3)
+    delegado = ft.TextField(
+        label="Delegado:",
+        hint_text="ID Delegado",
+        bgcolor="#1E1E1E",
+        border_radius=10,
+        border_color=ft.Colors.TRANSPARENT,
+        multiline=True,
+    )
+
+    # título mutable del modal (se actualiza al editar)
+    modal_title = ft.Text("CREAR CURSO", weight=ft.FontWeight.BOLD, size=22, color=ft.Colors.WHITE)
+
+    # --- Botones del modal (Reutilizados y adaptados) ---
+    def validar_y_crear_curso(e):
+        valid = True
+
+        if not nombre_curso.value or not nombre_curso.value.strip():
+            nombre_curso.error_text = "Campo requerido"
+            valid = False
+        else:
+            nombre_curso.error_text = None
+
+        if not docente.value or not docente.value.strip():
+            docente.error_text = "Campo requerido"
+            valid = False
+        else:
+            docente.error_text = None
+
+        if not delegado.value or not delegado.value.strip():
+            delegado.error_text = "Campo requerido"
+            valid = False
+        else:
+            delegado.error_text = None
+
+        page.update()
+
+        if not valid:
+            return
+
+
+        cargar_cursos_por_aula(selected_id)
+        # si estamos en edición, intentar actualizar; si no, crear
+        nonlocal edit_mode, editing_course_id
+        if edit_mode:
+            # intentar usar controlador actualizar_curso si está disponible
+            if actualizar_curso:
+                try:
+                    # intento genérico; ajustar firma del controlador según tu implementación
+                    actualizar_curso(editing_course_id, nombre_curso.value.strip(), docente.value.strip(), int(delegado.value.strip()))
+                except Exception as ex:
+                    print("Error al actualizar curso:", ex)
+            else:
+                print("Función actualizar_curso no implementada en controllers.")
+        else:
+            crear_curso(int(dropdown_aula.value), nombre_curso.value.strip(), docente.value.strip(), int(delegado.value.strip()))
+        
+        cargar_cursos_por_aula(selected_id)
+
+        # cerrar modal y limpiar
+        modal_container.visible = False
+        nombre_curso.value = ""
+        docente.value = ""
+        delegado.value = ""
+        page.update()
+
+
+    # --- Funciones para abrir/cerrar el modal ---
+
+    def abrir_modal(e):
+        modal_container.visible = True
+        page.update()
+
+    def cerrar_modal(e):
+        modal_container.visible = False
+        # Opcional: limpiar campos al cerrar
+        nombre_curso.value = ""
+        docente.value = ""
+        delegado.value = ""
+        page.update()
+
+        # resetear estado de edición y UI del modal
+        nonlocal edit_mode, editing_course_id
+        edit_mode = False
+        editing_course_id = None
+        try:
+            modal_title.value = "CREAR CURSO"
+        except Exception:
+            pass
+        try:
+            btn_crear_modal.text = "CREAR"
+        except Exception:
+            pass
+        page.update()
+
+    # --- Botones del modal (Reutilizados y adaptados) ---
+    btn_crear_modal = ft.ElevatedButton(
+        text="CREAR",
+        bgcolor="#2C2F3A",
+        color=ft.Colors.WHITE,
+        width=200,
+        height=60,
+        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
+        on_click=validar_y_crear_curso, # <-- Conectado a la nueva función
+    )
+    
+    btn_cancelar_modal = ft.TextButton(
+        text="Cancelar",
+        on_click=cerrar_modal
+    )
+
+    # --- 1. El Formulario del Modal (El contenedor del centro) ---
+    # Este es el contenedor que simula el 'AlertDialog'
+    
+    form_container = ft.Container(
+        width=700,  # más ancho para forma rectangular
+        height=400,
+        bgcolor="#121212",
+        border=ft.border.all(1, "#222222"),
+        border_radius=12,
+        padding=ft.padding.symmetric(horizontal=30, vertical=20),
+        content=ft.Column(
+            [
+                # Header
+                ft.Row(
+                    [
+                        ft.Icon(ft.Icons.ADD_BOX_OUTLINED, color=ft.Colors.WHITE),
+                        modal_title,
+                    ],
+                    spacing=10,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                ft.Divider(height=8, color=ft.Colors.TRANSPARENT),
+
+                # Inputs (ocupando todo el ancho disponible del formulario)
+                ft.Column(
+                    [
+                        ft.Container(content=nombre_curso, width=640),
+                        ft.Container(content=docente, width=640),
+                        ft.Container(content=delegado, width=640),
+                    ],
+                    spacing=12,
+                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                ),
+
+                ft.Divider(height=5, color=ft.Colors.TRANSPARENT),
+
+                # Acciones: alineadas a la derecha
+                ft.Row(
+                    [
+                        ft.Container(expand=True),  # empuja los botones a la derecha
+                        ft.Row(
+                            [btn_cancelar_modal, btn_crear_modal],
+                            spacing=12,
+                            alignment=ft.MainAxisAlignment.END,
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                ),
+            ],
+            spacing=12,
+            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+        ),
+    )
+
+    # --- 2. El Contenedor Modal (El fondo gris/dimmer) ---
+    # Este contenedor ocupa toda la pantalla y centra el formulario
+    
+    modal_container = ft.Container(
+        # Fondo semi-transparente para "oscurecer" la app
+        bgcolor=ft.Colors.with_opacity(0.6, ft.Colors.BLACK),
+        
+        # Ocupa todo el espacio disponible
+        expand=True, 
+        
+        # Centra el 'form_container'
+        alignment=ft.alignment.center, 
+        
+        # El contenido es el formulario que definimos arriba
+        content=form_container,
+        
+        # EMPIEZA OCULTO
+        visible=False,
+    )
 
     # --- BOTÓN AÑADIR CURSO ---
     btn_add_curso = ft.ElevatedButton(
@@ -168,8 +470,9 @@ def AulaDashboardView(page: ft.Page):
             shape=ft.RoundedRectangleBorder(radius=10),
             padding=ft.padding.symmetric(horizontal=20, vertical=10),
         ),
-        on_click=lambda e: page.go("/nuevo_curso"),
+        on_click= abrir_modal,
     )
+
 
     # --- BOTÓN HOME ---
     btn_home = ft.IconButton(
@@ -181,9 +484,11 @@ def AulaDashboardView(page: ft.Page):
     )
 
     # --- HEADER (TÍTULO + BOTONES DERECHA) ---
+    titulo_header = ft.Text("Cursos", size=45, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
+
     header = ft.Row(
         [
-            ft.Text("Cursos", size=45, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+            titulo_header,
             ft.Container(expand=True),
             btn_add_curso,
             btn_home,
@@ -205,6 +510,16 @@ def AulaDashboardView(page: ft.Page):
         ),
     )
 
+    # asignar el handler una vez que 'content' ya está creado
+    dropdown_aula.on_change = on_aula_change
+
+    # forzar carga inicial usando el value actual del dropdown (si existe)
+    if list_aulas and dropdown_aula.value:
+        class _E: pass
+        e = _E()
+        e.control = dropdown_aula
+        on_aula_change(e)
+
     # --- ESTRUCTURA PRINCIPAL (SIDEBAR + CONTENIDO) ---
     layout = ft.Row(
         [
@@ -215,4 +530,19 @@ def AulaDashboardView(page: ft.Page):
         expand=True,
     )
 
-    return layout
+    return ft.Container(
+        content=ft.Stack(
+            [
+                # Elemento 1: El contenido principal (al fondo)
+                layout,
+                
+                # Elemento 2: El modal (encima)
+                modal_container,
+            ],
+            # Hacemos que el Stack ocupe toda la página
+            expand=True 
+        ),
+        alignment=ft.alignment.center,  # 👈 centra vertical y horizontal
+        expand=True,                    # ocupa toda la pantalla
+        bgcolor=ft.Colors.BLACK
+    )
