@@ -4,7 +4,7 @@ import flet as ft
 def HomeView(page: ft.Page):
     # Encabezado principal
     titulo = ft.Text(
-        "UniversApp",
+        "",
         size=32,
         weight=ft.FontWeight.BOLD,
         color=ft.Colors.WHITE,
@@ -21,7 +21,7 @@ def HomeView(page: ft.Page):
 
     # Imagen principal de presentación (puedes colocar la ruta o URL)
     imagen_principal = ft.Image(
-        src="assets/images/image.jpg",  # 👈 cambia aquí
+        src="assets/images/logo.jpg",  # 👈 cambia aquí
         width=450,
         height=250,
         fit=ft.ImageFit.CONTAIN,

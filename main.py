@@ -5,6 +5,8 @@ from app.views.home_view import HomeView
 from app.views.dashboard_view import DashboardView
 from app.views.options_view import DashboardOptionsView
 from app.views.aula_dashboard import AulaDashboardView
+from app.views.herramientas_view import ToolsDashboardView
+from app.views.promodoro_view import PromodoroView
 
 
 def main(page: ft.Page):
@@ -24,6 +26,10 @@ def main(page: ft.Page):
             page.views.append(ft.View("/options", [DashboardOptionsView(page)]))
         elif page.route == "/aula_dashboard":
             page.views.append(ft.View("/aula_dashboard", [AulaDashboardView(page)]))
+        elif page.route == "/herramientas":
+            page.views.append(ft.View("/herramientas", [ToolsDashboardView(page)]))
+        elif page.route == "/promodoro":
+            page.views.append(ft.View("/promodoro", [PromodoroView(page)]))
 
 
         page.update()

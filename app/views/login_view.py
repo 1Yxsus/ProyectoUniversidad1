@@ -80,7 +80,7 @@ def LoginView(page: ft.Page):
 
     contenido_login = ft.Column(
         [   
-            ft.Text("Name", size=20, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+            ft.Text("Iniciar Sesión", size=20, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
             ft.Container(height=30),
             correo_input,
             contrasena_input,
