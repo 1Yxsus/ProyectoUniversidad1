@@ -6,7 +6,7 @@ from app.views.dashboard_view import DashboardView
 from app.views.options_view import DashboardOptionsView
 from app.views.aula_dashboard import AulaDashboardView
 from app.views.herramientas_view import ToolsDashboardView
-from app.views.promodoro_view import PromodoroView
+from app.views.pomodoro_view import PomodoroView
 
 
 def main(page: ft.Page):
@@ -29,7 +29,7 @@ def main(page: ft.Page):
         elif page.route == "/herramientas":
             page.views.append(ft.View("/herramientas", [ToolsDashboardView(page)]))
         elif page.route == "/promodoro":
-            page.views.append(ft.View("/promodoro", [PromodoroView(page)]))
+            page.views.append(ft.View("/promodoro", [PomodoroView(page)]))
 
 
         page.update()

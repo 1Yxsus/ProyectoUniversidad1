@@ -1,8 +1,8 @@
 import flet as ft
 import asyncio
 
-def PromodoroView(page: ft.Page):
-    page.title = "Aula 365 | Promodoro"
+def PomodoroView(page: ft.Page):
+    page.title = "Aula 365 | Pomodoro"
     page.bgcolor = "#000000"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
@@ -176,7 +176,7 @@ def PromodoroView(page: ft.Page):
         [
             header,
             ft.Container(height=40),
-            ft.Text("Promodoro", size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+            ft.Text("Pomodoro", size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
             ft.Container(height=20),
             configuracion,
             ft.Container(height=40),

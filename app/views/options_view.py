@@ -218,20 +218,47 @@ def DashboardOptionsView(page: ft.Page):
             content=ft.Column(
                 [
                     ft.Icon(icon, size=80, color=ft.Colors.WHITE),
-                    ft.Text(text, size=28, color=ft.Colors.WHITE, text_align=ft.TextAlign.CENTER),
+                    ft.Text(
+                        text,
+                        size=26,
+                        color=ft.Colors.WHITE,
+                        text_align=ft.TextAlign.CENTER,
+                        weight=ft.FontWeight.W_500,
+                    ),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             ),
-            bgcolor="#111111",  # Negro muy oscuro
+            bgcolor="#111111",
             width=width,
             height=height,
-            border_radius=15,
+            border_radius=20,
             alignment=ft.alignment.center,
+            border=ft.border.all(1, "#2B2B2B"),
             ink=True,
             on_click=on_click,
-            border=ft.border.all(1, "#222222"),
-        )
+            shadow=ft.BoxShadow(
+                spread_radius=1,
+                blur_radius=15,
+                color=ft.Colors.with_opacity(0.3, ft.Colors.WHITE),
+                offset=ft.Offset(0, 5),
+            ),
+            animate=ft.Animation(300, "easeOut"),
+            on_hover=lambda e: (
+                setattr(e.control, "bgcolor", "#1E1E1E" if e.data == "true" else "#111111"),
+                setattr(
+                    e.control,
+                    "shadow",
+                    ft.BoxShadow(
+                        spread_radius=2 if e.data == "true" else 1,
+                        blur_radius=25 if e.data == "true" else 15,
+                        color=ft.Colors.with_opacity(0.5 if e.data == "true" else 0.3, ft.Colors.WHITE),
+                        offset=ft.Offset(0, 8 if e.data == "true" else 5),
+                    ),
+                ),
+                e.control.update(),
+            ),
+    )
 
     # --- BOTONES IZQUIERDA Y DERECHA ---
     btn_crear_aula = create_button(ft.Icons.ADD, "Crear Aula", on_click=abrir_modal)
@@ -283,6 +310,14 @@ def DashboardOptionsView(page: ft.Page):
     )
 
     return ft.Container(
+        gradient=ft.LinearGradient(
+            begin=ft.alignment.top_center,
+            end=ft.alignment.bottom_center,
+            colors=[
+                ft.Colors.BLACK,
+                ft.Colors.with_opacity(0.97, ft.Colors.BLUE_GREY_900),
+            ],
+        ),
         content=ft.Stack(
             [
                 # Elemento 1: El contenido principal (al fondo)
@@ -296,5 +331,4 @@ def DashboardOptionsView(page: ft.Page):
         ),
         alignment=ft.alignment.center,  # 👈 centra vertical y horizontal
         expand=True,                    # ocupa toda la pantalla
-        bgcolor=ft.Colors.BLACK
     )

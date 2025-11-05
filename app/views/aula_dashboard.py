@@ -118,7 +118,6 @@ def AulaDashboardView(page: ft.Page):
 # ------------------------------------------------------
 
     def course_card(curso_dict):
-        # acepta un dict de curso y construye la tarjeta + botón editar
         nombre = curso_dict.get("curso")
         docente = curso_dict.get("docente")
         delegado = curso_dict.get("delegado")
@@ -128,44 +127,53 @@ def AulaDashboardView(page: ft.Page):
                 [
                     ft.Row(
                         [
-                            # El nombre ocupa el espacio disponible y hace wrap (max_lines controla líneas)
                             ft.Container(
                                 expand=True,
                                 content=ft.Text(
                                     nombre,
                                     size=18,
-                                    weight=ft.FontWeight.W_600,
-                                    color=ft.Colors.WHITE,
-                                    max_lines=3,                       # ajustar a tus necesidades
-                                    overflow=ft.TextOverflow.ELLIPSIS  # evita que el texto empuje el icono
+                                    weight=ft.FontWeight.W_500,
+                                    color="#F1F1F1",
+                                    max_lines=2,
+                                    overflow=ft.TextOverflow.ELLIPSIS,
                                 ),
                             ),
-                            # Icono siempre alineado a la derecha y con tamaño fijo
                             ft.IconButton(
                                 icon=ft.Icons.EDIT,
-                                icon_color=ft.Colors.WHITE,
+                                icon_color="#B0B0B0",
+                                icon_size=20,
+                                style=ft.ButtonStyle(
+                                    shape=ft.CircleBorder(),
+                                    overlay_color=ft.Colors.with_opacity(0.1, ft.Colors.WHITE),
+                                ),
                                 on_click=lambda e, c=curso_dict: abrir_modal_para_editar(c),
-                                tooltip="Editar curso"
+                                tooltip="Editar curso",
                             ),
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     ),
-                    ft.Text(f"Docente: {docente}", color="#AAAAAA", size=14),
-                    ft.Text(f"Delegado: {delegado}", color="#AAAAAA", size=14),
+                    ft.Text(f"Docente: {docente}", color="#A8A8A8", size=14),
+                    ft.Text(f"Delegado: {delegado}", color="#A8A8A8", size=14),
                 ],
-                # distribuir el contenido para que la tarjeta mantenga aspecto uniforme
                 spacing=6,
                 alignment=ft.MainAxisAlignment.START,
             ),
             width=320,
-            # fijar altura para que todas las tarjetas de la misma fila tengan igual tamaño
-            height=160,
-            bgcolor="#1A1A1A",
-            border_radius=12,
+            height=150,
+            bgcolor="#151515",
+            border=ft.border.all(1, "#2B2B2B"),
+            border_radius=10,
             padding=15,
             ink=True,
+            animate=ft.Animation(150, "easeOut"),
+            on_hover=lambda e: (
+                setattr(e.control, "bgcolor", "#1E1E1E" if e.data == "true" else "#151515"),
+                e.control.update(),
+            ),
             on_click=lambda e, n=nombre: print(f"Abrir curso: {n}"),
         )
+
+
 
     # --- SIMULACIÓN DE GRID SIN WRAP ---
     # Creamos filas manualmente con Row dentro de un Column
@@ -206,31 +214,57 @@ def AulaDashboardView(page: ft.Page):
 
     # --- BOTONES DE MENÚ IZQUIERDO ---
 
-    def side_button(text):
-        return ft.Container(
-            content=ft.Text(text, color=ft.Colors.WHITE, size=18),
-            width=150,
+    def side_button(text, selected=False):
+        base_color = "#1A1A1A"
+        hover_color = "#2A2A2A"
+        text_color = "#E0E0E0"
+
+        container = ft.Container(
+            content=ft.Text(
+                text,
+                color=text_color,
+                size=17,
+                weight=ft.FontWeight.W_400,
+            ),
+            width=160,
             height=45,
             alignment=ft.alignment.center,
-            bgcolor="#1B1B1B",
-            border_radius=10,
+            bgcolor=base_color,
+            border_radius=8,
+            border=ft.border.all(1, "#2E2E2E"),
             ink=True,
-            on_click= lambda e: actualizar_contenido(text)
+            animate=ft.Animation(200, "easeOut"),
+            on_click=lambda e: actualizar_contenido(text),
         )
+
+        container.on_hover = lambda e: (
+            setattr(container, "bgcolor", hover_color if e.data == "true" else base_color),
+            setattr(container, "border", ft.border.all(1, "#3A3A3A" if e.data == "true" else "#2E2E2E")),
+            container.update()
+        )
+        return container
+
+
 
     btn_cursos = side_button("Cursos")
     btn_anuncios = side_button("Anuncios")
 
     btn_logout = ft.Container(
-        content=ft.Text("Cerrar Sesión", color=ft.Colors.WHITE, size=18),
-        width=150,
+        content=ft.Text("Cerrar Sesión", color="#E0E0E0", size=16),
+        width=160,
         height=45,
         alignment=ft.alignment.center,
-        bgcolor="#2B0000",
-        border_radius=10,
+        bgcolor="#201010",
+        border_radius=8,
+        border=ft.border.all(1, "#3A1A1A"),
         ink=True,
         on_click=lambda e: page.go("/login"),
+        on_hover=lambda e: (
+            setattr(e.control, "bgcolor", "#2C1414" if e.data == "true" else "#201010"),
+            e.control.update(),
+        ),
     )
+
 
     # --- SIDEBAR COMPLETO ---
     sidebar = ft.Container(
@@ -464,14 +498,18 @@ def AulaDashboardView(page: ft.Page):
     btn_add_curso = ft.ElevatedButton(
         text="Añadir Curso",
         icon=ft.Icons.ADD,
-        bgcolor="#333333",
-        color=ft.Colors.WHITE,
+        bgcolor="#1F1F1F",
+        color="#EAEAEA",
+        height=45,
         style=ft.ButtonStyle(
-            shape=ft.RoundedRectangleBorder(radius=10),
+            shape=ft.RoundedRectangleBorder(radius=8),
+            side=ft.BorderSide(1, "#333333"),
+            overlay_color=ft.Colors.with_opacity(0.1, ft.Colors.WHITE),
             padding=ft.padding.symmetric(horizontal=20, vertical=10),
         ),
-        on_click= abrir_modal,
+        on_click=abrir_modal,
     )
+
 
 
     # --- BOTÓN HOME ---
@@ -479,9 +517,13 @@ def AulaDashboardView(page: ft.Page):
         icon=ft.Icons.HOME,
         icon_size=30,
         icon_color=ft.Colors.WHITE,
-        bgcolor="#111111",
+        style=ft.ButtonStyle(
+            bgcolor="#111111",
+            shape=ft.RoundedRectangleBorder(radius=12),
+        ),
         on_click=lambda e: page.go("/options"),
     )
+
 
     # --- HEADER (TÍTULO + BOTONES DERECHA) ---
     titulo_header = ft.Text("Cursos", size=45, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
@@ -531,6 +573,14 @@ def AulaDashboardView(page: ft.Page):
     )
 
     return ft.Container(
+        gradient=ft.LinearGradient(
+            begin=ft.alignment.top_center,
+            end=ft.alignment.bottom_center,
+            colors=[
+                ft.Colors.BLACK,
+                ft.Colors.with_opacity(0.97, ft.Colors.BLUE_GREY_900),
+            ],
+        ),
         content=ft.Stack(
             [
                 # Elemento 1: El contenido principal (al fondo)

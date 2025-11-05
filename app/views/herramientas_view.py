@@ -14,7 +14,7 @@ def ToolsDashboardView(page: ft.Page):
         icon_color=ft.Colors.WHITE,
         bgcolor="#111111",
         tooltip="Volver al inicio",
-        on_click=lambda e: page.go("/home"),
+        on_click=lambda e: page.go("/options"),
     )
 
     # --- ENCABEZADO ---
@@ -62,7 +62,7 @@ def ToolsDashboardView(page: ft.Page):
         )
 
     # --- TARJETAS ---
-    promodoro_card = tool_card(ft.Icons.ACCESS_TIME, "Promodoro", route="/promodoro")
+    promodoro_card = tool_card(ft.Icons.ACCESS_TIME, "Pomodoro", route="/promodoro")
     proximo_card = tool_card(ft.Icons.FLAG_OUTLINED, "Proximamente", enabled=False)
 
     # --- CONTENEDOR DE TARJETAS ---
@@ -88,6 +88,14 @@ def ToolsDashboardView(page: ft.Page):
 
     # --- ESTRUCTURA FINAL ---
     layout = ft.Container(
+        gradient=ft.LinearGradient(
+            begin=ft.alignment.top_center,
+            end=ft.alignment.bottom_center,
+            colors=[
+                ft.Colors.BLACK,
+                ft.Colors.with_opacity(0.97, ft.Colors.BLUE_GREY_900),
+            ],
+        ),
         expand=True,
         content=content,
         padding=ft.padding.all(30),
