@@ -28,8 +28,8 @@ def main(page: ft.Page):
             page.views.append(ft.View("/aula_dashboard", [AulaDashboardView(page)]))
         elif page.route == "/herramientas":
             page.views.append(ft.View("/herramientas", [ToolsDashboardView(page)]))
-        elif page.route == "/promodoro":
-            page.views.append(ft.View("/promodoro", [PomodoroView(page)]))
+        elif page.route == "/pomodoro":
+            page.views.append(ft.View("/pomodoro", [PomodoroView(page)]))
 
 
         page.update()

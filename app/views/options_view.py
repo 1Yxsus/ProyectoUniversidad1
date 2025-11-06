@@ -1,5 +1,6 @@
 import flet as ft
 from app.controllers.aulas_controller import crear_aulas
+from app.utils.vald_text_fields import validar_formulario
 
 def DashboardOptionsView(page: ft.Page):
 
@@ -65,6 +66,8 @@ def DashboardOptionsView(page: ft.Page):
         multiline=True,
     )
 
+    campos = [nombre_aula, descripcion]
+
     # --- Funciones para abrir/cerrar el modal ---
 
     def abrir_modal(e):
@@ -81,38 +84,50 @@ def DashboardOptionsView(page: ft.Page):
         page.update()
 
     def crear_aula(e):
-        valid = True
-
-        if not nombre_aula.value or not nombre_aula.value.strip():
-            nombre_aula.error_text = "Campo requerido"
-            valid = False
-        else:
-            nombre_aula.error_text = None
-
-        if not descripcion.value or not descripcion.value.strip():
-            descripcion.error_text = "Campo requerido"
-            valid = False
-        else:
-            descripcion.error_text = None
-
-        page.update()
-
-        if not valid:
+        if not validar_formulario(page, [nombre_aula, descripcion], "Por favor, completa todos los campos."):
             return
 
-        # Llamar al controlador (usa la tupla (success, msg) que retorna crear_aulas)
+        # Llamar al controlador que retorna (success, msg)
         success, msg = crear_aulas(nombre_aula.value.strip(), descripcion.value.strip(), id)
+
         if not success:
-            # Mostrar error en SnackBar
-            page.snack_bar.content = ft.Text(f"Error: {msg}")
+            # Mostrar error en SnackBar (rojo)
+            page.snack_bar = ft.SnackBar(
+                content=ft.Row(
+                    [
+                        ft.Icon(ft.Icons.ERROR_OUTLINE, color=ft.Colors.WHITE),
+                        ft.Text(f"Error: {msg}", color=ft.Colors.WHITE),
+                    ],
+                    spacing=10,
+                ),
+                bgcolor="#B22222",  # rojo oscuro
+                duration=3000,      # tiempo en milisegundos (3s)
+            )
             page.snack_bar.open = True
             page.update()
             return
 
-        # Éxito
-        page.snack_bar.content = ft.Text(f"Aula '{nombre_aula.value.strip()}' creada")
-        page.snack_bar.open = True
+        # ✅ Éxito: mensaje inferior de confirmación
+        page.snack_bar = ft.SnackBar(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.CHECK_CIRCLE_OUTLINE, color=ft.Colors.WHITE),
+                    ft.Text(
+                        f"Aula '{nombre_aula.value.strip()}' creada con éxito.",
+                        color=ft.Colors.WHITE,
+                        size=16,
+                    ),
+                ],
+                spacing=10,
+            ),
+            bgcolor="#2E7D32",  # verde éxito
+            duration=3000,
+            open=True,
+        )
+
         cerrar_modal(e)
+        page.update()
+
 
     # --- Botones del modal (Reutilizados y adaptados) ---
     btn_crear_modal = ft.ElevatedButton(

@@ -62,7 +62,7 @@ def ToolsDashboardView(page: ft.Page):
         )
 
     # --- TARJETAS ---
-    promodoro_card = tool_card(ft.Icons.ACCESS_TIME, "Pomodoro", route="/promodoro")
+    promodoro_card = tool_card(ft.Icons.ACCESS_TIME, "Pomodoro", route="/pomodoro")
     proximo_card = tool_card(ft.Icons.FLAG_OUTLINED, "Proximamente", enabled=False)
 
     # --- CONTENEDOR DE TARJETAS ---
