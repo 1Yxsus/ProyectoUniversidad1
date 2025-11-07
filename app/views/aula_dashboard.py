@@ -1,7 +1,7 @@
 import flet as ft
 from app.controllers.aulas_controller import obtener_aulas
 from app.controllers.cursos_controller import crear_curso, obtener_cursos, actualizar_curso
-from app.views.curso_detalle_view import crear_vista_curso_detalle
+from app.views.containers.curso_container import CursoDetalleView
 from app.utils.vald_text_fields import validar_formulario
 
 
@@ -34,7 +34,7 @@ def AulaDashboardView(page: ft.Page):
     # 3️⃣ CONFIGURACIÓN DE PÁGINA
     # ------------------------------------------------------
     page.bgcolor = "#000000"
-    page.title = "Aula 365 | Cursos"
+    page.title = "UniRed - Aula Dashboard"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
 
@@ -91,6 +91,7 @@ def AulaDashboardView(page: ft.Page):
                 setattr(e.control, "bgcolor", "#1E1E1E" if e.data == "true" else "#151515"),
                 e.control.update(),
             ),
+            on_click=lambda e, c=curso_dict: cargar_curso_container(c),
         )
 
     # ---------- (B) Grid de Cursos ----------
@@ -162,6 +163,11 @@ def AulaDashboardView(page: ft.Page):
             cargar_cursos_por_aula(selected_id)
         elif texto == "Anuncios":
             content.content.controls[2] = ft.Text("Sección de Anuncios en construcción...", color=ft.Colors.WHITE)
+        page.update()
+
+    def cargar_curso_container(curso_dict):
+        curso_vista = CursoDetalleView(page, curso_dict, selected_id, cargar_cursos_por_aula)
+        content.content.controls[2] = curso_vista
         page.update()
 
     # ------------------------------------------------------

@@ -2,7 +2,7 @@ import flet as ft
 
 def ToolsDashboardView(page: ft.Page):
     # --- CONFIGURACIÓN GENERAL ---
-    page.title = "Aula 365 | Herramientas"
+    page.title = "UniRed - Herramientas"
     page.bgcolor = "#000000"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
