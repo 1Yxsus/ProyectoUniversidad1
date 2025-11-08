@@ -28,3 +28,30 @@ def obtener_aulas(id_usuario: int):
     result = aula_model.get_by_usuario(id_usuario)
 
     return result
+
+def obtener_aula_by_id(id_aula: int):
+    """
+    Devuelve un diccionario con los datos del aula.
+    """
+    aula_model = AulaModel()
+    result = aula_model.get_by_id(id_aula)
+    if result:
+        return result
+    else:
+        return None
+
+def actualizar_aula(id_aula: int, nombre_aula: str, descripcion: str):
+    """
+    Intenta actualizar un aula.
+    Devuelve (True, None) si tuvo éxito.
+    Devuelve (False, "mensaje") en caso de error.
+    """
+    aula_model =AulaModel()
+    try:
+        updated_rows = aula_model.update(id_aula, nombre_aula, descripcion)
+        if updated_rows == 0:
+            raise Exception("No se actualizó ningún registro")
+        return True, None
+    except Exception as ex:
+        print("Error actualizar_aula:", ex)
+        return False, str(ex)

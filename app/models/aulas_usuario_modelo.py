@@ -24,6 +24,24 @@ class AulaUsuarioModel:
         conn.close()
         return result
 
+    def get_id_aula_usuario(self, id_aula, id_usuario):
+        """
+        Devuelve el id_aula_usuario (PK) para la combinación id_aula + id_usuario.
+        Retorna int o None si no existe.
+        """
+        query = "SELECT id_aula_usuario FROM aulas_usuarios WHERE id_aula = %s AND id_usuario = %s LIMIT 1"
+        conn = self.db.connect()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(query, (id_aula, id_usuario))
+        row = cursor.fetchone()
+        conn.close()
+        if row and "id_aula_usuario" in row:
+            try:
+                return int(row["id_aula_usuario"])
+            except Exception:
+                return row["id_aula_usuario"]
+        return None
+
     def update_rol(self, id_aula_usuario, rol):
         query = "UPDATE aulas_usuarios SET rol=%s WHERE id_aula_usuario=%s"
         conn = self.db.connect()

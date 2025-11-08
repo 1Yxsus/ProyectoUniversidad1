@@ -15,3 +15,8 @@ def obtener_tareas_por_curso(id_curso: int):
 
     tarea_model = TareaModel()
     return tarea_model.get_by_curso(id_curso)
+
+def obtener_tareas_por_curso_ordenadas(id_curso: int):
+
+    tarea_model = TareaModel()
+    return tarea_model.get_by_curso_ordenadas(id_curso)

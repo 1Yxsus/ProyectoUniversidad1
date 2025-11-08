@@ -5,7 +5,7 @@ from app.utils.vald_text_fields import validar_formulario
 # ======================================================
 #             VISTA DE CURSOS (CONTENIDO)
 # ======================================================
-def contenedor_cursos(page: ft.Page, user: dict, id_aula: int):
+def contenedor_cursos(page: ft.Page, id_aula: int, func_load_content):
     
     # ------------------------------------------------------
     # ESTADOS Y VARIABLES
@@ -108,7 +108,7 @@ def contenedor_cursos(page: ft.Page, user: dict, id_aula: int):
             ),
             # --- ON_CLICK CORREGIDO ---
             # Al hacer clic, llama a la función de navegación
-            on_click=abrir_tareas_curso,
+            on_click=lambda e: func_load_content("Curso", curso_dict),
         )
 
     # ---------- (B) Grid de Cursos ----------
@@ -251,7 +251,7 @@ def contenedor_cursos(page: ft.Page, user: dict, id_aula: int):
     # para que 'cargar_curso_container' pueda reemplazarlo
     view_wrapper = ft.Container(
         ref=view_content,
-        content=main_cursos_content,
+        content=main_cursos_content, # Contenido Principal - Lo que se debe cambiar
         expand=True,
         padding=30
     )

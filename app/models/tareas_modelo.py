@@ -21,6 +21,30 @@ class TareaModel:
         result = cursor.fetchall()
         conn.close()
         return result
+    
+    def get_by_curso_ordenadas(self, id_curso):
+        """
+        Obtiene todas las tareas de un curso ordenadas por fecha de entrega (más próximas primero).
+        """
+        query = """
+        SELECT 
+            id_tarea, 
+            titulo, 
+            descripcion, 
+            fecha_entrega, 
+            fecha_publicacion, 
+            publicado_por
+        FROM tareas
+        WHERE id_curso = %s
+        ORDER BY fecha_entrega ASC
+        """
+        conn = self.db.connect()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(query, (id_curso,))
+        result = cursor.fetchall()
+        conn.close()
+        return result
+
 
     def update(self, id_tarea, titulo, descripcion, fecha_entrega):
         query = "UPDATE tareas SET titulo=%s, descripcion=%s, fecha_entrega=%s WHERE id_tarea=%s"
