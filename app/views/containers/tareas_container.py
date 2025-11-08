@@ -13,7 +13,6 @@ def TareasCursoView(page: ft.Page, curso_dict: dict, selected_id: int, func_curs
     # ------------------------------------------------------
     edit_mode = False
     editing_course_id = None
-    selected_id = None
 
     # --- DATOS DEL CURSO ---
     curso_nombre = curso_dict.get("curso")
