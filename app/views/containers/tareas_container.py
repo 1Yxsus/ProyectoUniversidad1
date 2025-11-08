@@ -53,16 +53,19 @@ def TareasCursoView(page: ft.Page, curso_dict: dict, selected_id: int, func_curs
     titulo = ft.TextField(label="Titulo:", bgcolor="#1E1E1E", border_radius=10)
     descripcion = ft.TextField(label="Descripción:", bgcolor="#1E1E1E", border_radius=10)
     publicado_por = ft.TextField(label="Nombre:", bgcolor="#1E1E1E", border_radius=10)
+    fecha_limite = ft.TextField(label="Fecha Limite:", bgcolor="#1E1E1E", border_radius=10)
 
-    fecha_limite = ft.DatePicker(
-        field_label_text="Fecha Límite:",
-        first_date=datetime.time(2020, 1, 1),
-        last_date=datetime.time(2030, 12, 31),
-        on_change=lambda e: (
-            setattr(fecha_limite, "value", str(fecha_limite.value.strftime("%d/%m/%Y"))),
-            page.update()
-        )
-    )
+
+    # fecha_limite = ft.DatePicker(
+    #     field_label_text="Fecha Límite:",
+    #     first_date=datetime.time(2020, 1, 1),
+    #     last_date=datetime.time(2030, 12, 31),
+    #     on_change=lambda e: (
+    #         setattr(fecha_limite, "value", str(fecha_limite.value.strftime("%d/%m/%Y"))),
+    #         page.update()
+    #     )
+    # )
+
     modal_title = ft.Text("CREAR TAREA", weight=ft.FontWeight.BOLD, size=22, color=ft.Colors.WHITE)
 
     campos = [titulo, descripcion, publicado_por, fecha_limite]
