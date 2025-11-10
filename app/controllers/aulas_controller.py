@@ -20,14 +20,26 @@ def crear_aulas(nombre_aula: str, descripcion: str, id_admin: int):
         print("Error crear_aulas:", ex)
         return False, str(ex)
     
-def obtener_aulas(id_usuario: int):
+def obtener_aulas_por_usuario(id_usuario):
     """
-    Devuelve la lista de todas las aulas.
+    Devuelve las aulas donde participa id_usuario incluyendo el rol (campo 'rol')
+    que viene del JOIN en el modelo.
     """
-    aula_model = AulaModel()
-    result = aula_model.get_by_usuario(id_usuario)
+    model = AulaModel()
+    return model.get_by_usuario(int(id_usuario)) if id_usuario else []
 
-    return result
+def obtener_todas_aulas():
+    model = AulaModel()
+    return model.get_all()
+
+def obtener_aulas(id_usuario=None):
+    """
+    Wrapper que, si se pasa id_usuario, devuelve las aulas del usuario (con rol);
+    si no se pasa, devuelve todas las aulas.
+    """
+    if id_usuario:
+        return obtener_aulas_por_usuario(id_usuario)
+    return obtener_todas_aulas()
 
 def obtener_aula_by_id(id_aula: int):
     """

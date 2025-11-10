@@ -1,154 +1,168 @@
 import flet as ft
 from app.controllers.cursos_controller import crear_curso, obtener_cursos, actualizar_curso
 from app.utils.vald_text_fields import validar_formulario
+from app.controllers.aulas_controller import obtener_aula_by_id
+from app.controllers.aulas_usuario_controller import obtener_miembros_de_aula
+from app.utils.is_staff_verification import is_staff_verification
 
-# ======================================================
-#             VISTA DE CURSOS (CONTENIDO)
-# ======================================================
+
 def contenedor_cursos(page: ft.Page, id_aula: int, func_load_content):
-    
-    # ------------------------------------------------------
-    # ESTADOS Y VARIABLES
-    # ------------------------------------------------------
     edit_mode = False
     editing_course_id = None
-    
-    view_content = ft.Ref[ft.Container]() # Sigue siendo útil si quieres cambiar vistas internas
+    view_content = ft.Ref[ft.Container]()
+    session_aula = page.session.get("selected_aula")
+    session_aula_id = page.session.get("selected_aula_id")
+    is_staff = is_staff_verification(page, id_aula)
+
+    aula_actual = session_aula or (
+        obtener_aula_by_id(int(session_aula_id)) if session_aula_id else None
+    )
+
+    aula_nombre = (
+        (aula_actual.get("nombre_aula") if isinstance(aula_actual, dict) else None)
+        or (aula_actual.get("nombre") if isinstance(aula_actual, dict) else None)
+        or "Aula sin nombre"
+    )
 
     # ------------------------------------------------------
-    # FUNCIONES LÓGICAS
+    # 🔹 ESTILO UNIFICADO CON DASHBOARD
     # ------------------------------------------------------
-
-    def cargar_grid_cursos(id_aula_cargada):
-        """ Carga el grid de cursos en el 'view_content' """
-        cursos_list = obtener_cursos(id_aula_cargada)
-        cards = [course_card(c) for c in cursos_list]
-        
-        if not cards:
-            grid = ft.Container(
-                content=ft.Text("No hay cursos creados en esta aula.", color=ft.Colors.WHITE),
-                alignment=ft.alignment.center,
-                expand=True
-            )
-        else:
-            grid = course_grid(cards, max_per_row=4)
-        
-        # Actualiza el contenido del contenedor principal
-        if view_content.current:
-            view_content.current.content = ft.Column(
-                [header, ft.Container(height=30), grid],
-                scroll=ft.ScrollMode.ADAPTIVE,
-                expand=True
-            )
-            page.update()
-
-    # --- FUNCIÓN ELIMINADA ---
-    # Ya no usamos 'cargar_curso_container'
-    # def cargar_curso_container(curso_dict):
-    #     ...
+    COLOR_BG_CARD = "#0E1E25"
+    COLOR_BG_CARD_HOVER = "#152B33"
+    COLOR_BORDER_CARD = "#1F3A44"
+    COLOR_ACCENT = "#1C8DB0"
+    COLOR_TEXT_PRIMARY = "#EAEAEA"
+    COLOR_TEXT_SECONDARY = "#AAB6B8"
 
     # ------------------------------------------------------
-    # COMPONENTES DE INTERFAZ
+    # 🔸 TARJETA DE CURSO
     # ------------------------------------------------------
-
-    # ---------- (A) Tarjeta de Curso ----------
     def course_card(curso_dict):
         nombre = curso_dict.get("curso")
         docente = curso_dict.get("docente")
         delegado = curso_dict.get("delegado")
-        curso_id = curso_dict.get("id_curso") # Obtenemos el ID del curso
-
-        def abrir_tareas_curso(e):
-            """Navega a la vista de tareas del curso específico"""
-            print(f"Navegando a /curso/{curso_id}/tareas")
-            page.go(f"/curso/{curso_id}/tareas")
+        curso_id = curso_dict.get("id_curso")
 
         return ft.Container(
             content=ft.Column(
                 [
                     ft.Row(
                         [
-                            ft.Container(
-                                expand=True,
-                                content=ft.Text(
-                                    nombre,
-                                    size=18,
-                                    weight=ft.FontWeight.W_500,
-                                    color="#F1F1F1",
-                                    max_lines=2,
-                                    overflow=ft.TextOverflow.ELLIPSIS,
-                                ),
+                            ft.Text(
+                                nombre,
+                                size=18,
+                                weight=ft.FontWeight.W_500,
+                                color=COLOR_TEXT_PRIMARY,
+                                max_lines=2,
+                                overflow=ft.TextOverflow.ELLIPSIS,
                             ),
                             ft.IconButton(
                                 icon=ft.Icons.EDIT,
-                                icon_color="#B0B0B0",
+                                icon_color=COLOR_TEXT_SECONDARY,
                                 icon_size=20,
                                 tooltip="Editar curso",
                                 on_click=lambda e, c=curso_dict: abrir_modal_para_editar(c),
+                                visible=is_staff,
                             ),
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     ),
-                    ft.Text(f"Docente: {docente}", color="#A8A8A8", size=14),
-                    ft.Text(f"Delegado: {delegado}", color="#A8A8A8", size=14),
+                    ft.Text(f"ID Curso: {curso_id}", color="#7C8B8C", size=12),
+                    ft.Text(f"Docente: {docente}", color="#C7D3D4", size=14),
+                    ft.Text(f"Delegado: {delegado}", color="#C7D3D4", size=14),
                 ],
                 spacing=6,
             ),
             width=320,
             height=150,
-            bgcolor="#151515",
-            border=ft.border.all(1, "#2B2B2B"),
-            border_radius=10,
+            border_radius=12,
             padding=15,
+            border=ft.border.all(1, COLOR_BORDER_CARD),
+            bgcolor=ft.LinearGradient(
+                begin=ft.alignment.top_left,
+                end=ft.alignment.bottom_right,
+                colors=[COLOR_BG_CARD, "#0C252D"],
+            ),
             ink=True,
-            animate=ft.Animation(150, ft.AnimationCurve.EASE_OUT),
             on_hover=lambda e: (
-                setattr(e.control, "bgcolor", "#1E1E1E" if e.data == "true" else "#151515"),
+                setattr(
+                    e.control,
+                    "bgcolor",
+                    ft.LinearGradient(
+                        begin=ft.alignment.top_left,
+                        end=ft.alignment.bottom_right,
+                        colors=[COLOR_BG_CARD_HOVER, "#133540"]
+                    ) if e.data == "true" else
+                    ft.LinearGradient(
+                        begin=ft.alignment.top_left,
+                        end=ft.alignment.bottom_right,
+                        colors=[COLOR_BG_CARD, "#0C252D"]
+                    ),
+                ),
                 e.control.update(),
             ),
-            # --- ON_CLICK CORREGIDO ---
-            # Al hacer clic, llama a la función de navegación
             on_click=lambda e: func_load_content("Curso", curso_dict),
         )
 
-    # ---------- (B) Grid de Cursos ----------
+    # ------------------------------------------------------
+    # GRID DE CURSOS
+    # ------------------------------------------------------
     def course_grid(cards, max_per_row=3):
-        rows = []
-        for i in range(0, len(cards), max_per_row):
-            rows.append(ft.Row(cards[i:i + max_per_row], spacing=20))
+        rows = [
+            ft.Row(cards[i:i + max_per_row], spacing=20)
+            for i in range(0, len(cards), max_per_row)
+        ]
         return ft.Container(content=ft.Column(rows, spacing=20))
 
     # ------------------------------------------------------
-    # COMPONENTES DEL MODAL CREAR/EDITAR CURSO
+    # MODAL DE CREAR / EDITAR
     # ------------------------------------------------------
-    nombre_curso = ft.TextField(label="Nombre del Curso:", bgcolor="#1E1E1E", border_radius=10, border_color=ft.Colors.TRANSPARENT)
-    docente = ft.TextField(label="Docente:", bgcolor="#1E1E1E", border_radius=10, border_color=ft.Colors.TRANSPARENT)
-    delegado = ft.TextField(label="Delegado:", bgcolor="#1E1E1E", border_radius=10, border_color=ft.Colors.TRANSPARENT)
-    modal_title = ft.Text("CREAR CURSO", weight=ft.FontWeight.BOLD, size=22, color=ft.Colors.WHITE)
-    campos = [nombre_curso, docente, delegado]
+    nombre_curso = ft.TextField(
+        label="Nombre del Curso",
+        bgcolor="#0D1A20",
+        border_radius=8,
+        border_color="#1F3A44",
+        focused_border_color=COLOR_ACCENT,
+        color=COLOR_TEXT_PRIMARY,
+    )
+
+    docente = ft.TextField(
+        label="Docente",
+        bgcolor="#0D1A20",
+        border_radius=8,
+        border_color="#1F3A44",
+        focused_border_color=COLOR_ACCENT,
+        color=COLOR_TEXT_PRIMARY,
+    )
+
+    try:
+        miembros = obtener_miembros_de_aula(id_aula)
+    except Exception:
+        miembros = []
+
+    delegado = ft.Dropdown(
+        label="Delegado",
+        options=[
+            ft.dropdown.Option(str(m.get("id_usuario")),
+                f"{m.get('nombre','').strip()} {m.get('apellido','').strip()}".strip())
+            for m in miembros
+        ],
+        width=300,
+    )
+
+    modal_title = ft.Text("CREAR CURSO", weight=ft.FontWeight.BOLD, size=22, color="#FFFFFF")
 
     def validar_y_crear_curso(e):
         nonlocal edit_mode, editing_course_id
-        if not validar_formulario(page, campos):
+        if not validar_formulario(page, [nombre_curso, docente, delegado]):
             return
-        
-        try:
-            if edit_mode:
-                actualizar_curso(editing_course_id, nombre_curso.value, docente.value, int(delegado.value))
-            else:
-                crear_curso(id_aula, nombre_curso.value, docente.value, int(delegado.value))
-            
-            cerrar_modal(e)
-            cargar_grid_cursos(id_aula) # Recarga el grid
-        
-        except Exception as ex:
-            print(f"Error al guardar curso: {ex}")
-            # Mostrar error en un SnackBar
-            snack = ft.SnackBar(ft.Text(f"Error: {ex}"), bgcolor=ft.Colors.RED_700)
-            page.overlay.append(snack)
-            snack.open = True
-            page.update()
-
+        delegado_id = int(delegado.value) if delegado.value else None
+        if edit_mode:
+            actualizar_curso(editing_course_id, nombre_curso.value, docente.value, delegado_id)
+        else:
+            crear_curso(id_aula, nombre_curso.value, docente.value, delegado_id)
+        cerrar_modal(e)
+        cargar_grid_cursos(id_aula)
 
     def abrir_modal_para_editar(curso_dict):
         nonlocal edit_mode, editing_course_id
@@ -158,51 +172,69 @@ def contenedor_cursos(page: ft.Page, id_aula: int, func_load_content):
         delegado.value = str(curso_dict.get("id_delegado") or "")
         edit_mode = True
         modal_title.value = "EDITAR CURSO"
-        btn_crear_modal.text = "GUARDAR"
-        abrir_modal(e=None) # Llama a la función de abrir modal
+        abrir_modal(None)
 
     def abrir_modal(e):
-        # Si no estamos editando, resetea los campos
-        if not edit_mode:
-            nombre_curso.value = ""
-            docente.value = ""
-            delegado.value = ""
-            modal_title.value = "CREAR CURSO"
-            btn_crear_modal.text = "CREAR"
-        
-        page.overlay.append(modal_container) # Usa overlay
+        page.overlay.append(modal_container)
         modal_container.visible = True
         page.update()
 
     def cerrar_modal(e):
         nonlocal edit_mode, editing_course_id
         modal_container.visible = False
-        page.overlay.remove(modal_container) # Usa overlay
+        if modal_container in page.overlay:
+            page.overlay.remove(modal_container)
         edit_mode = False
         editing_course_id = None
         page.update()
 
-    btn_crear_modal = ft.ElevatedButton(text="CREAR", on_click=validar_y_crear_curso)
-    btn_cancelar_modal = ft.TextButton(text="Cancelar", on_click=cerrar_modal)
+    btn_guardar = ft.Container(
+        content=ft.Text("Guardar", color="#FFFFFF", size=16, weight=ft.FontWeight.W_500),
+        gradient=ft.LinearGradient(
+            begin=ft.alignment.center_left,
+            end=ft.alignment.center_right,
+            colors=[COLOR_ACCENT, "#145C70"],
+        ),
+        width=150,
+        height=45,
+        border_radius=8,
+        alignment=ft.alignment.center,
+        ink=True,
+        on_click=validar_y_crear_curso,
+    )
+
+    btn_cancelar = ft.Container(
+        content=ft.Text("Cancelar", color=COLOR_TEXT_SECONDARY, size=16),
+        width=120,
+        height=45,
+        border_radius=8,
+        alignment=ft.alignment.center,
+        ink=True,
+        border=ft.border.all(1, "#2C2C2C"),
+        on_click=cerrar_modal,
+    )
 
     form_container = ft.Container(
         width=700,
         height=400,
-        bgcolor="#121212",
+        bgcolor="#0B1418",
         border_radius=12,
         padding=30,
+        border=ft.border.all(1, "#1E2C30"),
         content=ft.Column(
             [
-                ft.Row([ft.Icon(ft.Icons.ADD_BOX_OUTLINED), modal_title], spacing=10),
+                ft.Row([ft.Icon(ft.Icons.ADD_BOX_OUTLINED, color=COLOR_ACCENT), modal_title], spacing=10),
                 nombre_curso, docente, delegado,
-                ft.Row([btn_cancelar_modal, btn_crear_modal], alignment=ft.MainAxisAlignment.END),
+                ft.Container(height=15),
+                ft.Row([btn_cancelar, btn_guardar],
+                       alignment=ft.MainAxisAlignment.END, spacing=10),
             ],
-            spacing=10,
+            spacing=12,
         ),
     )
 
     modal_container = ft.Container(
-        bgcolor=ft.Colors.with_opacity(0.6, ft.Colors.BLACK),
+        bgcolor=ft.Colors.with_opacity(0.65, "#000000"),
         expand=True,
         alignment=ft.alignment.center,
         content=form_container,
@@ -210,172 +242,113 @@ def contenedor_cursos(page: ft.Page, id_aula: int, func_load_content):
     )
 
     # ------------------------------------------------------
-    # HEADER (Botones Añadir Curso y Home)
+    # HEADER
     # ------------------------------------------------------
-    btn_add_curso = ft.ElevatedButton(text="Añadir Curso", icon=ft.Icons.ADD, on_click=abrir_modal, bgcolor="#1F1F1F", color="#EAEAEA")
-    btn_home = ft.IconButton(icon=ft.Icons.HOME, on_click=lambda e: page.go("/options"), icon_color=ft.Colors.WHITE, bgcolor="#111111")
-
-    titulo_header = ft.Text("Cursos", size=45, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
-
-    header = ft.Row(
-        [titulo_header, ft.Container(expand=True), btn_add_curso, btn_home],
-        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-    )
-
-    # ------------------------------------------------------
-    # CONTENIDO INICIAL DE LA VISTA
-    # ------------------------------------------------------
-    cursos_list_inicial = obtener_cursos(id_aula)
-    cards_iniciales = [course_card(c) for c in cursos_list_inicial]
-    if not cards_iniciales:
-        grid_inicial = ft.Container(
-            content=ft.Text("No hay cursos creados en esta aula.", color=ft.Colors.WHITE),
-            alignment=ft.alignment.center,
-            expand=True
-        )
-    else:
-        grid_inicial = course_grid(cards_iniciales, max_per_row=4)
-
-    # ------------------------------------------------------
-    # ESTRUCTURA FINAL DE LA VISTA
-    # ------------------------------------------------------
-    
-    # Este es el contenido principal de la vista de cursos
-    main_cursos_content = ft.Column(
-        [header, ft.Container(height=30), grid_inicial],
-        scroll=ft.ScrollMode.ADAPTIVE,
-        expand=True
-    )
-
-    # El 'view_content' (Ref) apunta a este contenedor
-    # para que 'cargar_curso_container' pueda reemplazarlo
-    view_wrapper = ft.Container(
-        ref=view_content,
-        content=main_cursos_content, # Contenido Principal - Lo que se debe cambiar
-        expand=True,
-        padding=30
-    )
-
-    # Retorna un Stack para que el modal funcione
-    return ft.Stack(
-        [
-            view_wrapper,
-            modal_container
-        ],
-        expand=True
-    )
-
-
-"""
-
-import flet as ft
-from app.views.containers.tareas_container import TareasCursoView
-
-def CursoDetalleView(page: ft.Page, curso_dict: dict, selected_id: int, func_cursos_load):
-
-    # Retorna la vista de detalle de un curso específico.
-    # Muestra el nombre del curso y opciones: TAREAS y SILABUS.
-
-    # --- FUNCIONES INTERNAS ---
-    
-    def cargar_tareas():
-        tareas_vista = TareasCursoView(page, curso_dict, selected_id, func_cursos_load)
-        layout.content = tareas_vista
-        page.update()
-
-
-    # --- DATOS DEL CURSO ---
-    curso_nombre = curso_dict.get("curso")
-
-    # --- TÍTULO DEL CURSO ---
-    titulo_curso = ft.Text(
-        curso_nombre,
-        size=40,
-        weight=ft.FontWeight.BOLD,
-        color=ft.Colors.WHITE,
-    )
-
-    # --- BOTÓN VOLVER ---
     btn_volver = ft.IconButton(
         icon=ft.Icons.ARROW_BACK,
-        icon_color=ft.Colors.WHITE,
+        icon_color="#EAEAEA",
         icon_size=26,
         style=ft.ButtonStyle(
             shape=ft.CircleBorder(),
-            bgcolor=ft.Colors.with_opacity(0.15, ft.Colors.WHITE),
+            bgcolor=ft.Colors.with_opacity(0.1, "#1C8DB0"),
         ),
         tooltip="Volver",
-        on_click=lambda e: func_cursos_load(selected_id),
+        on_click=lambda e: page.go("/tus_aulas"),
     )
 
-    # --- HEADER SUPERIOR ---
+    btn_home = ft.IconButton(
+        icon=ft.Icons.HOME,
+        icon_color="#EAEAEA",
+        icon_size=26,
+        style=ft.ButtonStyle(
+            shape=ft.CircleBorder(),
+            bgcolor=ft.Colors.with_opacity(0.1, "#1C8DB0"),
+        ),
+        tooltip="Inicio",
+        on_click=lambda e: page.go("/options"),
+    )
+
+    btn_add = ft.Container(
+        content=ft.Row(
+            [ft.Icon(ft.Icons.ADD, color="#FFFFFF"), ft.Text("Añadir curso", color="#FFFFFF")],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=6,
+        ),
+        gradient=ft.LinearGradient(
+            begin=ft.alignment.center_left,
+            end=ft.alignment.center_right,
+            colors=[COLOR_ACCENT, "#186678"],
+        ),
+        width=180,
+        height=45,
+        border_radius=8,
+        ink=True,
+        visible=is_staff,
+        on_click=abrir_modal,
+    )
+
+    titulo = ft.Text(
+        f"Cursos - {aula_nombre}",
+        size=32,
+        weight=ft.FontWeight.BOLD,
+        color=COLOR_TEXT_PRIMARY,
+    )
+
     header = ft.Row(
         [
-            titulo_curso,
+            titulo,
             ft.Container(expand=True),
+            btn_add,
             btn_volver,
+            btn_home  # ← restaurado y rediseñado
         ],
         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-        vertical_alignment=ft.CrossAxisAlignment.CENTER,
     )
 
-    # --- FUNCIÓN PARA BOTONES DE MÓDULO ---
-    def boton_modulo(icono, texto, func_load_content):
-        return ft.Container(
-            content=ft.Row(
-                [
-                    ft.Text(
-                        texto,
-                        size=20,
-                        color=ft.Colors.WHITE,
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                    ft.Icon(icono, color=ft.Colors.WHITE, size=35),
-                ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            ),
-            width=480,
-            height=90,
-            bgcolor="#151515",
-            border_radius=12,
-            border=ft.border.all(1, "#2A2A2A"),
-            padding=ft.padding.symmetric(horizontal=25, vertical=15),
-            ink=True,
-            animate=ft.Animation(150,ft.AnimationCurve.EASE_IN_OUT),
-            on_hover=lambda e: (
-                setattr(e.control, "bgcolor", "#1E1E1E" if e.data == "true" else "#151515"),
-                e.control.update(),
-            ),
-            on_click= lambda e: func_load_content(),
+    # ------------------------------------------------------
+    # CONTENIDO PRINCIPAL
+    # ------------------------------------------------------
+    def cargar_grid_cursos(id_aula_cargada):
+        cursos_list = obtener_cursos(id_aula_cargada)
+        cards = [course_card(c) for c in cursos_list]
+        grid = (
+            ft.Container(
+                content=ft.Text("No hay cursos creados en esta aula.", color="#AAAAAA"),
+                alignment=ft.alignment.center,
+                expand=True
+            )
+            if not cards else course_grid(cards, max_per_row=4)
         )
+        if view_content.current:
+            view_content.current.content = ft.Column(
+                [header, grid],
+                scroll=ft.ScrollMode.ADAPTIVE,
+                expand=True,
+            )
+            page.update()
 
-    # --- BOTONES DE OPCIONES ---
-    btn_tareas = boton_modulo(ft.Icons.CHECKLIST_ROUNDED, "TAREAS", cargar_tareas)
-    btn_silabus = boton_modulo(ft.Icons.DESCRIPTION_ROUNDED, "SILABUS", cargar_tareas)
-
-    # --- ESTRUCTURA PRINCIPAL ---
-    contenido = ft.Column(
-        [
-            header,
-            ft.Container(height=50),
-            btn_tareas,
-            btn_silabus,
-        ],
-        spacing=25,
-        alignment=ft.MainAxisAlignment.START,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+    cursos_list_inicial = obtener_cursos(id_aula)
+    cards_iniciales = [course_card(c) for c in cursos_list_inicial]
+    grid_inicial = (
+        ft.Container(
+            content=ft.Text("No hay cursos creados en esta aula.", color="#AAAAAA"),
+            alignment=ft.alignment.center,
+            expand=True,
+        )
+        if not cards_iniciales
+        else course_grid(cards_iniciales, max_per_row=4)
     )
 
-    # --- CONTAINER FINAL ---
-    layout = ft.Container(
-        content=contenido,
-        alignment=ft.alignment.top_center,
+    main_content = ft.Column(
+        [header, ft.Container(height=20), grid_inicial],
+        scroll=ft.ScrollMode.ADAPTIVE,
         expand=True,
-        padding=ft.padding.all(40),
-        bgcolor="#000000",
     )
 
-    return layout
-
-
-"""
+    return ft.Stack(
+        [
+            ft.Container(ref=view_content, content=main_content, expand=True, padding=30),
+            modal_container,
+        ],
+        expand=True,
+    )

@@ -180,6 +180,40 @@ class CursoModel:
         finally:
             conn.close()
 
+    def get_by_id(self, id_curso):
+        """
+        Obtiene un curso específico por su ID.
+        """
+        query = "SELECT * FROM cursos WHERE id_curso = %s"
+        conn = self.db.connect()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(query, (id_curso,))
+            result = cursor.fetchone()
+            return result
+        except mysql.connector.Error as err:
+            print(f"Error al obtener curso por ID: {err}")
+            return None
+        finally:
+            conn.close()
+
+    def get_nombre_by_id(self, id_curso):
+        """
+        Obtiene el nombre de un curso específico por su ID.
+        """
+        query = "SELECT nombre_curso FROM cursos WHERE id_curso = %s"
+        conn = self.db.connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(query, (id_curso,))
+            result = cursor.fetchone()
+            return result[0] if result else None
+        except mysql.connector.Error as err:
+            print(f"Error al obtener nombre del curso por ID: {err}")
+            return None
+        finally:
+            conn.close()
+
     def update(self, id_curso, nombre_curso, nombre_docente, id_delegado, nombre_delegado):
         """
         Actualiza los datos de un curso específico.
@@ -220,19 +254,4 @@ class CursoModel:
         finally:
             conn.close()
 
-    def get_by_id(self, id_curso):
-        """
-        Obtiene un curso específico por su ID.
-        """
-        query = "SELECT * FROM cursos WHERE id_curso = %s"
-        conn = self.db.connect()
-        try:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute(query, (id_curso,))
-            result = cursor.fetchone()
-            return result
-        except mysql.connector.Error as err:
-            print(f"Error al obtener curso por ID: {err}")
-            return None
-        finally:
-            conn.close()
+    

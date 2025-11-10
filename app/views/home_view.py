@@ -2,63 +2,94 @@ import flet as ft
 
 
 def HomeView(page: ft.Page):
-    page.bgcolor = ft.Colors.BLACK
+    """
+    Pantalla principal unificada con estilo dark-petróleo minimalista.
+    """
+    # ================================
+    # COLORES BASE
+    # ================================
+    COLOR_ACCENT = "#1C8DB0"
+    COLOR_BG_CARD = "#0E1E25"
+    COLOR_BG_HOVER = "#152B33"
+    COLOR_TEXT = "#EAEAEA"
+    COLOR_TEXT_SEC = "#AAB6B8"
+
+    page.bgcolor = "#000000"
     page.scroll = ft.ScrollMode.AUTO
 
-    # --- Encabezado principal ---
+    # ================================
+    # ENCABEZADO PRINCIPAL
+    # ================================
     titulo = ft.Text(
-        "Herramienta Univeritaria",
-        size=40,
+        "UniversApp",
+        size=42,
         weight=ft.FontWeight.BOLD,
-        color=ft.Colors.WHITE,
+        color=COLOR_TEXT,
         text_align=ft.TextAlign.CENTER,
     )
 
     subtitulo = ft.Text(
-        "Organiza, colabora y potencia tu productividad universitaria.\nUna plataforma creada por estudiantes, para estudiantes.",
-        size=17,
-        color=ft.Colors.GREY_400,
+        "Organiza, colabora y potencia tu productividad universitaria.\n"
+        "Una plataforma creada por estudiantes, para estudiantes.",
+        size=18,
+        color=COLOR_TEXT_SEC,
         text_align=ft.TextAlign.CENTER,
         width=600,
     )
 
-    # --- Imagen principal ---
+    # ================================
+    # IMAGEN PRINCIPAL
+    # ================================
     imagen_principal = ft.Image(
-        src="assets/images/logo_main.png",  # 900x900
+        src="assets/images/logo_main.png",
         width=320,
         height=320,
         fit=ft.ImageFit.CONTAIN,
     )
 
-    # --- Funcionalidades (más compactas) ---
+    # ================================
+    # TARJETAS DE FUNCIONALIDAD
+    # ================================
     def card_funcionalidad(icono, titulo, texto):
         return ft.Container(
             width=210,
             height=230,
-            bgcolor=ft.Colors.with_opacity(0.08, ft.Colors.WHITE),
-            border_radius=20,
+            border_radius=18,
+            border=ft.border.all(1, "#1F3A44"),
+            bgcolor=ft.LinearGradient(colors=[COLOR_BG_CARD, "#0C252D"]),
             padding=15,
-            shadow=ft.BoxShadow(blur_radius=15, color=ft.Colors.with_opacity(0.1, ft.Colors.WHITE)),
+            ink=True,
+            animate=ft.Animation(180, "easeOut"),
+            on_hover=lambda e: (
+                setattr(
+                    e.control,
+                    "bgcolor",
+                    ft.LinearGradient(colors=[COLOR_BG_HOVER, "#133540"])
+                    if e.data == "true"
+                    else ft.LinearGradient(colors=[COLOR_BG_CARD, "#0C252D"]),
+                ),
+                e.control.update(),
+            ),
             content=ft.Column(
                 [
                     ft.Image(src=icono, width=90, height=90, fit=ft.ImageFit.CONTAIN),
                     ft.Text(
                         titulo,
-                        size=14,
+                        size=15,
                         weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.WHITE,
+                        color=COLOR_TEXT,
                         text_align=ft.TextAlign.CENTER,
                     ),
                     ft.Text(
                         texto,
-                        size=12.5,
-                        color=ft.Colors.GREY_400,
+                        size=13,
+                        color=COLOR_TEXT_SEC,
                         text_align=ft.TextAlign.CENTER,
                     ),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=8,
+                spacing=10,
             ),
         )
 
@@ -81,32 +112,53 @@ def HomeView(page: ft.Page):
             ),
         ],
         alignment=ft.MainAxisAlignment.CENTER,
-        spacing=25,  # 🔹 Más compacto
+        spacing=25,
         run_spacing=10,
         wrap=True,
     )
 
-    # --- Botón principal (más visible y cerca del contenido) ---
-    btn_empezar = ft.ElevatedButton(
-        text="Comenzar ahora",
-        style=ft.ButtonStyle(
-            bgcolor=ft.Colors.BLUE_500,
-            color=ft.Colors.WHITE,
-            shape=ft.RoundedRectangleBorder(radius=14),
-            elevation=6,
-            padding=ft.padding.symmetric(horizontal=40, vertical=18),
+    # ================================
+    # BOTÓN PRINCIPAL
+    # ================================
+    btn_empezar = ft.Container(
+        content=ft.Row(
+            [
+                ft.Icon(ft.Icons.PLAY_ARROW, color="#FFFFFF"),
+                ft.Text("Comenzar ahora", color="#FFFFFF", size=16, weight=ft.FontWeight.BOLD),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=8,
         ),
+        gradient=ft.LinearGradient(colors=[COLOR_ACCENT, "#145C70"]),
+        width=220,
+        height=50,
+        border_radius=10,
+        alignment=ft.alignment.center,
+        ink=True,
         on_click=lambda e: page.go("/login"),
+        animate=ft.Animation(200, "easeOut"),
+        on_hover=lambda e: (
+            setattr(
+                e.control,
+                "gradient",
+                ft.LinearGradient(colors=["#23A5C8", "#17748C"])
+                if e.data == "true"
+                else ft.LinearGradient(colors=[COLOR_ACCENT, "#145C70"]),
+            ),
+            e.control.update(),
+        ),
     )
 
-    # --- Contenido principal centrado ---
+    # ================================
+    # CONTENIDO PRINCIPAL
+    # ================================
     contenido = ft.Column(
         [
             titulo,
             subtitulo,
-            ft.Container(height=25),
+            ft.Container(height=15),
             imagen_principal,
-            ft.Container(height=35),
+            ft.Container(height=15),
             seccion_funcionalidades,
             ft.Container(height=40),
             btn_empezar,
@@ -116,21 +168,20 @@ def HomeView(page: ft.Page):
         spacing=15,
     )
 
-    # --- Fondo con degradado sutil ---
+    # ================================
+    # FONDO GRADIENTE PETRÓLEO
+    # ================================
     fondo = ft.Container(
         gradient=ft.LinearGradient(
-            begin=ft.alignment.top_center,
-            end=ft.alignment.bottom_center,
-            colors=[
-                ft.Colors.BLACK,
-                ft.Colors.with_opacity(0.97, ft.Colors.BLUE_GREY_900),
-            ],
+            begin=ft.alignment.top_left,
+            end=ft.alignment.bottom_right,
+            colors=["#0C1C24", "#0E2329", "#08171C"],
         ),
         content=ft.Container(
             content=contenido,
             alignment=ft.alignment.center,
             expand=True,
-            padding=ft.padding.symmetric(horizontal=40, vertical=30),
+            padding=ft.padding.symmetric(horizontal=40, vertical=50),
         ),
         expand=True,
     )

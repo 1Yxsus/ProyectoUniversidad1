@@ -7,10 +7,11 @@ from app.views.options_view import DashboardOptionsView
 from app.views.aula_dashboard import AulaDashboardView
 from app.views.herramientas_view import ToolsDashboardView
 from app.views.pomodoro_view import PomodoroView
+from app.views.tus_aulas_view import AulasView
 
 
 def main(page: ft.Page):
-
+    
     def route_change(route):
         page.views.clear()
 
@@ -30,6 +31,8 @@ def main(page: ft.Page):
             page.views.append(ft.View("/herramientas", [ToolsDashboardView(page)]))
         elif page.route == "/pomodoro":
             page.views.append(ft.View("/pomodoro", [PomodoroView(page)]))
+        elif page.route == "/tus_aulas":
+            page.views.append(ft.View("/tus_aulas", [AulasView(page)]))
 
 
         page.update()
@@ -38,4 +41,4 @@ def main(page: ft.Page):
     page.go(page.route)
 
 
-ft.app(target=main)
+ft.app(target=main) #assets_dir="assets", view=ft.WEB_BROWSER)

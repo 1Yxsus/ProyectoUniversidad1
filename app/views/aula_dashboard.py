@@ -7,279 +7,227 @@ from app.views.containers.curso_container import CursoDetalleView
 from app.views.containers.tareas_container import TareasCursoView
 from app.views.containers.editar_aula_container import EditarAulaView
 from app.views.containers.miembros_container import MiembrosAulaView
+from app.controllers.aulas_usuario_controller import obtener_roles_por_usuario
+from app.views.containers.silabus_container import SyllabusCursoView
+from app.views.containers.anuncios_container import AnunciosAulaView
 
-# --- 1. Importar las nuevas "sub-vistas" ---
 
-# ======================================================
-#         VISTA PRINCIPAL (CONTENEDOR)
-# ======================================================
 def AulaDashboardView(page: ft.Page):
     # ------------------------------------------------------
-    # 1️⃣ VALIDACIÓN DE SESIÓN
+    # VALIDACIÓN DE SESIÓN
     # ------------------------------------------------------
     user = page.session.get("user")
     if not user:
         page.go("/login")
         return
 
-    # Usar .get() es más seguro
-    id_usuario = user.get("id_usuario") 
+    id_usuario = user.get("id_usuario")
     nombre = user.get("nombre", "Usuario")
     apellido = user.get("apellido", "")
+    roles_by_aula = page.session.get("roles_by_aula")
 
-
-    # ------------------------------------------------------
-    # 2️⃣ ESTADOS Y VARIABLES INTERNAS
-    # ------------------------------------------------------
-    # 'selected_id' ahora es la única variable de estado importante aquí
-    selected_id = None  
+    selected_id = None
+    current_actualizar_titulo = None
 
     # ------------------------------------------------------
-    # 3️⃣ CONFIGURACIÓN DE PÁGINA
+    # CONFIGURACIÓN DE PÁGINA
     # ------------------------------------------------------
-    page.bgcolor = "#000000"
-    page.title = "UniRed - Aula Dashboard"
+    page.title = "UniRed | Dashboard de Aula"
+    page.scroll = ft.ScrollMode.AUTO
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+    page.vertical_alignment = ft.MainAxisAlignment.START
 
     # ------------------------------------------------------
-    # 4️⃣ COMPONENTES DE INTERFAZ REUTILIZABLES
+    # BOTÓN LATERAL (TONO DARK MODERNO)
     # ------------------------------------------------------
-
-    # ---------- (A) Botón lateral ----------
     def side_button(text):
-        base_color = "#1A1A1A"
-        hover_color = "#2A2A2A"
-        text_color = "#E0E0E0"
+        base_color = "#141A1F"
+        hover_color = "#1C242B"
+        text_color = "#E8E8E8"
 
-        container = ft.Container(
-            content=ft.Text(text, color=text_color, size=17),
-            width=160,
+        btn = ft.Container(
+            content=ft.Text(text, color=text_color, size=16, weight=ft.FontWeight.W_400),
+            width=170,
             height=45,
-            alignment=ft.alignment.center,
             bgcolor=base_color,
-            border_radius=8,
-            border=ft.border.all(1, "#2E2E2E"),
+            alignment=ft.alignment.center,
+            border_radius=10,
+            border=ft.border.all(1, "#222A30"),
             ink=True,
-            # Llama a la nueva función 'actualizar_contenido'
-            on_click=lambda e: mostrar_contenido(text), 
+            on_click=lambda e: mostrar_contenido(text),
         )
 
-        container.on_hover = lambda e: (
-            setattr(container, "bgcolor", hover_color if e.data == "true" else base_color),
-            container.update()
+        btn.on_hover = lambda e: (
+            setattr(btn, "bgcolor", hover_color if e.data == "true" else base_color),
+            btn.update(),
         )
-        return container
+        return btn
 
     # ------------------------------------------------------
-    # 5️⃣ FUNCIONES LÓGICAS
+    # FUNCIÓN: CAMBIO DE CONTENIDO
     # ------------------------------------------------------
-
-    def on_aula_change(e):
-        nonlocal selected_id
-        try:
-            selected_id = int(e.control.value) if e.control and e.control.value is not None else None
-        except Exception:
-            selected_id = None
-        print("DEBUG on_aula_change -> selected_id:", selected_id, type(selected_id))
-        # carga automáticamente la vista de cursos para el aula seleccionada
-        mostrar_contenido("Cursos")
-
-    def actualizar_contenido(texto):
-        # Carga la vista (Cursos o Anuncios) en el content_area
-        
-        id_aula_actual = selected_id.current
-        if not id_aula_actual:
-            content_area.content = ft.Container(
-                content=ft.Text("Por favor, seleccione un aula.", color=ft.Colors.WHITE),
-                alignment=ft.alignment.center,
-                expand=True
-            )
-            page.update()
-            return
-            
-        print(f"Cargando '{texto}' para el aula {id_aula_actual}")
-        if texto == "Cursos":
-            # Llama a la función CursosView y le pasa los datos
-            content_area.content = contenedor_cursos(page, user, id_aula_actual)
-        elif texto == "Anuncios":
-            # Llama a la función AnunciosView
-            content_area.content = contenedor_anuncios(page, user, id_aula_actual)
-
-        page.update()
-
-    def on_aula_updated(actualizada: dict):
-        nonlocal list_aulas, dropdown_aula
-        # recargar la lista desde BD (opcional) o actualizar el elemento en list_aulas
-        try:
-            list_aulas = obtener_aulas(id_usuario)
-        except Exception:
-            # fallback: actualizar el dict en memoria
-            for i, a in enumerate(list_aulas):
-                if a.get("id_aula") == actualizada.get("id_aula"):
-                    list_aulas[i].update(actualizada)
-                    break
-        # reconstruir options usando ids como key
-        dropdown_aula.options = [
-            ft.dropdown.Option(key=str(a["id_aula"]), text=a["nombre_aula"]) for a in list_aulas
-        ]
-        # si el aula editada es la seleccionada, actualizar el value/text si quieres
-        if str(actualizada.get("id_aula")) == dropdown_aula.value:
-            # actualizar el value para forzar redraw (opcional)
-            dropdown_aula.value = str(actualizada.get("id_aula"))
-        page.update()
-
-    def mostrar_contenido(view_name, curso_dict = None):
-        # asegurar que selected_id es un int válido
+    def mostrar_contenido(view_name, curso_dict=None):
+        nonlocal current_actualizar_titulo
         if not selected_id:
             content_area.content = ft.Container(
-                content=ft.Text("Por favor, seleccione un aula.", color=ft.Colors.WHITE),
+                content=ft.Text("Por favor, selecciona un aula.", color="#CCCCCC", size=16),
                 alignment=ft.alignment.center,
-                expand=True
+                expand=True,
             )
             page.update()
             return
 
-        print("DEBUG mostrar_contenido -> selected_id:", selected_id, type(selected_id))
-
-        # --- llamada segura al contenedor de cursos ---
-        # Ajusta el orden según la firma de contenedor_cursos:
-        #  - si su firma es contenedor_cursos(page, id_aula, user): usa la llamada siguiente
-        # try:
-        #     new_content = contenedor_cursos(page, selected_id, user)
-        # except TypeError:
-        #     # si la firma es distinta (page, user, id_aula) intenta con el orden inverso
-        #     new_content = contenedor_cursos(page, user, selected_id)
+        id_aula_int = int(selected_id)
+        role = roles_by_aula.get(id_aula_int) if roles_by_aula else None
 
         if view_name == "Cursos":
-            new_content = contenedor_cursos(page, selected_id, mostrar_contenido)
+            res = contenedor_cursos(page, selected_id, mostrar_contenido)
+            if isinstance(res, tuple) and len(res) == 2:
+                new_content, current_actualizar_titulo = res
+            else:
+                new_content = res
         elif view_name == "Curso":
             new_content = CursoDetalleView(page, curso_dict, mostrar_contenido)
-        elif view_name == "Anuncios":
-            new_content = ft.Text("Anuncios (pendiente)", color=ft.Colors.WHITE)
+        elif view_name == "Notificaciones":
+            new_content = AnunciosAulaView(page, selected_id)
         elif view_name == "Tareas":
             new_content = TareasCursoView(page, curso_dict, selected_id, mostrar_contenido)
         elif view_name == "Editar Aula":
             aula_dict = obtener_aula_by_id(selected_id)
-            new_content = EditarAulaView(page, mostrar_contenido, aula_dict, on_update=on_aula_updated)
+            if callable(current_actualizar_titulo):
+                new_content = EditarAulaView(page, mostrar_contenido, aula_dict, on_update=current_actualizar_titulo)
+            else:
+                new_content = EditarAulaView(page, mostrar_contenido, aula_dict)
         elif view_name == "Miembros":
-            new_content = MiembrosAulaView(page, selected_id)
+            new_content = MiembrosAulaView(page, mostrar_contenido, selected_id)
+        elif view_name == "Silabus":
+            new_content = SyllabusCursoView(page, curso_dict, selected_id, mostrar_contenido)
         else:
-            new_content = ft.Text("Inicio del curso", color=ft.Colors.WHITE)
+            new_content = ft.Container(
+                content=ft.Text(f"Vista '{view_name}' en desarrollo", color="#AAAAAA"),
+                alignment=ft.alignment.center,
+            )
 
-        content_area.content = ft.Column([new_content])
+        content_area.content = ft.Container(content=new_content, expand=True)
         page.update()
 
     # ------------------------------------------------------
-    # 6️⃣ SIDEBAR Y LAYOUT GENERAL
+    # SIDEBAR (CON GRADIENTE OSCURO SUAVE)
     # ------------------------------------------------------
-    list_aulas = obtener_aulas(id_usuario) 
-    
-    dropdown_aula = ft.Dropdown(
-        value=str(list_aulas[0]["id_aula"]) if list_aulas else None,
-        options=[ft.dropdown.Option(key=str(a['id_aula']), text=a['nombre_aula']) for a in list_aulas],
-        width=160,
-        color=ft.Colors.WHITE,
-        border_color="#333333",
-        focused_border_color="#555555",
-        on_change=on_aula_change,
-    )
+    list_aulas = obtener_aulas(id_usuario)
 
     user_info = ft.Column(
         [
-            ft.Icon(ft.Icons.ACCOUNT_CIRCLE, size=70, color=ft.Colors.WHITE),
-            ft.Text(f"{nombre} {apellido}", size=20, color=ft.Colors.LIGHT_BLUE_ACCENT, weight=ft.FontWeight.W_500),
+            ft.Icon(ft.Icons.ACCOUNT_CIRCLE, size=70, color="#EAEAEA"),
+            ft.Text(f"{nombre} {apellido}", size=18, color="#FFFFFF", weight=ft.FontWeight.W_500),
         ],
         alignment=ft.MainAxisAlignment.CENTER,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         spacing=5,
     )
 
-    # (Tu código de btn_logout)
     btn_logout = ft.Container(
-        content=ft.Text("Cerrar Sesión", color="#E0E0E0", size=16),
-        width=160,
+        content=ft.Text("Cerrar sesión", color="#EAEAEA", size=15),
+        width=170,
         height=45,
+        bgcolor="#162020",
+        border_radius=10,
+        border=ft.border.all(1, "#2C2C2C"),
         alignment=ft.alignment.center,
-        bgcolor="#201010",
-        border_radius=8,
-        border=ft.border.all(1, "#3A1A1A"),
         ink=True,
-        on_click=lambda e: page.go("/login"), # <-- Deberías usar tu botón de utilidades
+        on_click=lambda e: page.go("/login"),
         on_hover=lambda e: (
-            setattr(e.control, "bgcolor", "#2C1414" if e.data == "true" else "#201010"),
+            setattr(e.control, "bgcolor", "#1F2A2A" if e.data == "true" else "#162020"),
             e.control.update(),
         ),
     )
 
     sidebar = ft.Container(
-        width=200,
-        bgcolor="#0A0A0A",
+        width=220,
+        gradient=ft.LinearGradient(
+            begin=ft.alignment.top_left,
+            end=ft.alignment.bottom_right,
+            colors=["#0C141A", "#0F1C23", "#0C181D"],
+        ),
         padding=20,
+        border=ft.border.only(right=ft.border.BorderSide(1, "#1E252B")),
         content=ft.Column(
             [
-                dropdown_aula,
-                ft.Container(height=30),
                 user_info,
-                ft.Container(height=30),
+                ft.Container(height=25),
                 side_button("Cursos"),
-                side_button("Anuncios"),
+                side_button("Notificaciones"),
                 side_button("Editar Aula"),
                 ft.Container(expand=True),
                 btn_logout,
-            ]
+            ],
+            spacing=12,
         ),
     )
 
     # ------------------------------------------------------
-    # 7️⃣ CONTENIDO CENTRAL (AHORA ES UN CONTENEDOR VACÍO)
+    # CONTENIDO CENTRAL
     # ------------------------------------------------------
-    
-    # Esta es el 'content' que el layout usará
     content_area = ft.Container(
         expand=True,
-        padding=0, # El padding se manejará dentro de cada sub-vista
+        padding=0,
         alignment=ft.alignment.top_left,
         content=ft.Container(
-            content=ft.Text("Cargando...", color=ft.Colors.WHITE),
+            content=ft.Text("Cargando...", color="#AAAAAA", size=16),
             alignment=ft.alignment.center,
-            expand=True
-        )
+            expand=True,
+        ),
     )
 
     # ------------------------------------------------------
     # CARGA INICIAL
     # ------------------------------------------------------
+    session_selected_id = page.session.get("selected_aula_id")
+    try:
+        session_selected_id = int(session_selected_id) if session_selected_id else None
+    except Exception:
+        session_selected_id = None
+
     if list_aulas:
-        selected_id = list_aulas[0]["id_aula"]
-        mostrar_contenido("Cursos") # Carga "Cursos" por defecto
+        selected_id = session_selected_id or list_aulas[0].get("id_aula")
+        mostrar_contenido("Cursos")
     else:
         content_area.content = ft.Container(
-            content=ft.Text("No estás inscrito en ninguna aula.", color=ft.Colors.WHITE),
+            content=ft.Text("No estás inscrito en ninguna aula.", color="#AAAAAA", size=16),
             alignment=ft.alignment.center,
-            expand=True
+            expand=True,
         )
 
     # ------------------------------------------------------
-    # 9️⃣ ESTRUCTURA FINAL
+    # DISEÑO FINAL (GRADIENTE COMPATIBLE CON TODAS LAS VISTAS)
     # ------------------------------------------------------
     layout = ft.Row(
-        [
-            sidebar, 
-            ft.VerticalDivider(width=1, color="#333333"), 
-            content_area # <--- Se usa el 'content_area' dinámico
-        ], 
-        expand=True
-    )
-
-    # El modal se ha movido a cursos_view, por lo que el Stack ya no es necesario aquí
-    return ft.Container(
-        gradient=ft.LinearGradient(
-            begin=ft.alignment.top_center,
-            end=ft.alignment.bottom_center,
-            colors=[ft.Colors.BLACK, ft.Colors.with_opacity(0.97, ft.Colors.BLUE_GREY_900)],
-        ),
-        content=layout, # Retorna solo el layout
+        [sidebar, ft.VerticalDivider(width=1, color="#2B2B2B"), content_area],
         expand=True,
     )
-    #"""
+
+    # Fondo dark con matices azul-verde, combinando con “Anuncios” y “Cursos”
+    background = ft.Stack(
+        [
+            ft.Container(
+                gradient=ft.LinearGradient(
+                    begin=ft.alignment.top_left,
+                    end=ft.alignment.bottom_right,
+                    colors=[
+                        "#0C1C24",  # azul petróleo oscuro
+                        "#0E2329",  # tono intermedio
+                        "#08171C",  # casi negro, con reflejo verde-azul
+                    ],
+                ),
+                expand=True,
+            ),
+            ft.Container(
+                bgcolor=ft.Colors.with_opacity(0.04, "#FFFFFF"),
+                expand=True,
+            ),
+            layout,
+        ],
+        expand=True,
+    )
+
+    return background

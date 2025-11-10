@@ -2,11 +2,12 @@ import flet as ft
 from app.controllers.aulas_controller import crear_aulas
 from app.utils.vald_text_fields import validar_formulario
 
+
 def DashboardOptionsView(page: ft.Page):
-
-    # --- Información de usuario ---
+    # ================================
+    # INFORMACIÓN DE USUARIO
+    # ================================
     user = page.session.get("user")
-
     if not user:
         page.go("/login")
         return
@@ -15,310 +16,248 @@ def DashboardOptionsView(page: ft.Page):
     nombre = user["nombre"]
     apellido = user["apellido"]
 
-    # --- CONFIGURACIÓN GENERAL ---
-    page.bgcolor = "#000000"  # Negro total
+    # ================================
+    # CONFIGURACIÓN GENERAL
+    # ================================
+    COLOR_ACCENT = "#1C8DB0"
+    COLOR_BG_CARD = "#0E1E25"
+    COLOR_BG_HOVER = "#152B33"
+    COLOR_TEXT = "#EAEAEA"
+    COLOR_TEXT_SEC = "#9FAEB1"
+
+    page.bgcolor = "#000000"
     page.title = "Panel Principal"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
 
-    # --- BOTÓN DE CERRAR SESIÓN ---
-    btn_logout = ft.TextButton(
-        text="Cerrar Sesión",
-        style=ft.ButtonStyle(
-            bgcolor="#2B0000",  # Rojo oscuro
-            color=ft.Colors.WHITE,
-            padding=ft.padding.symmetric(horizontal=20, vertical=10),
-            shape=ft.RoundedRectangleBorder(radius=8),
+    # ================================
+    # BOTÓN CERRAR SESIÓN
+    # ================================
+    btn_logout = ft.Container(
+        content=ft.Row(
+            [
+                ft.Icon(ft.Icons.LOGOUT, color="#FFFFFF"),
+                ft.Text("Cerrar sesión", color="#FFFFFF", size=14, weight=ft.FontWeight.W_500),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=6,
         ),
+        gradient=ft.LinearGradient(colors=["#A93226", "#7B1F1F"]),
+        width=160,
+        height=40,
+        border_radius=10,
+        alignment=ft.alignment.center,
+        ink=True,
         on_click=lambda e: page.go("/login"),
     )
 
-    logout_container = ft.Container(
-        content=btn_logout,
-        padding=ft.padding.only(right=40, top=10),  # separa del borde
-    )
+    logout_container = ft.Container(padding=ft.padding.only(right=40, top=20), content=btn_logout)
 
-    # --- TÍTULO BIENVENIDA ---
+    # ================================
+    # TÍTULO DE BIENVENIDA
+    # ================================
     lbl_bienvenida = ft.Text(
         value=f"Bienvenido, {nombre} {apellido}",
-        size=40,
-        color=ft.Colors.WHITE,
-        weight=ft.FontWeight.W_500,
-        italic=True,
+        size=38,
+        color=COLOR_TEXT,
+        weight=ft.FontWeight.BOLD,
         text_align=ft.TextAlign.CENTER,
     )
 
-    # --- TextFields del modal (Reutilizados) ---
+    # ================================
+    # CAMPOS DE MODAL
+    # ================================
     nombre_aula = ft.TextField(
         label="Nombre del Aula:",
         hint_text="Ejemplo: AULA 203",
-        bgcolor="#1E1E1E",
-        border_radius=10,
-        border_color=ft.Colors.TRANSPARENT,
+        bgcolor="#0D1A20",
+        border_radius=8,
+        border_color="#1F3A44",
+        focused_border_color=COLOR_ACCENT,
+        color=COLOR_TEXT,
     )
 
     descripcion = ft.TextField(
         label="Descripción:",
         hint_text="Máximo 200 caracteres",
-        bgcolor="#1E1E1E",
-        border_radius=10,
-        border_color=ft.Colors.TRANSPARENT,
+        bgcolor="#0D1A20",
+        border_radius=8,
+        border_color="#1F3A44",
+        focused_border_color=COLOR_ACCENT,
+        color=COLOR_TEXT,
         multiline=True,
     )
 
-    campos = [nombre_aula, descripcion]
-
-    # --- Funciones para abrir/cerrar el modal ---
-
+    # ================================
+    # FUNCIONES MODAL
+    # ================================
     def abrir_modal(e):
         modal_container.visible = True
         page.update()
 
     def cerrar_modal(e):
         modal_container.visible = False
-        # Limpiar campos y errores al cerrar
         nombre_aula.value = ""
         descripcion.value = ""
         nombre_aula.error_text = None
         descripcion.error_text = None
         page.update()
 
-    def crear_aula(e):
+    def crear_aula_action(e):
         if not validar_formulario(page, [nombre_aula, descripcion], "Por favor, completa todos los campos."):
             return
 
-        # Llamar al controlador que retorna (success, msg)
         success, msg = crear_aulas(nombre_aula.value.strip(), descripcion.value.strip(), id)
 
         if not success:
-            # Mostrar error en SnackBar (rojo)
             page.snack_bar = ft.SnackBar(
                 content=ft.Row(
-                    [
-                        ft.Icon(ft.Icons.ERROR_OUTLINE, color=ft.Colors.WHITE),
-                        ft.Text(f"Error: {msg}", color=ft.Colors.WHITE),
-                    ],
+                    [ft.Icon(ft.Icons.ERROR_OUTLINE, color=ft.Colors.WHITE),
+                     ft.Text(f"Error: {msg}", color=ft.Colors.WHITE)],
                     spacing=10,
                 ),
-                bgcolor="#B22222",  # rojo oscuro
-                duration=3000,      # tiempo en milisegundos (3s)
+                bgcolor="#B22222",
+                duration=3000,
+                open=True,
             )
-            page.snack_bar.open = True
-            page.update()
             return
 
-        # ✅ Éxito: mensaje inferior de confirmación
         page.snack_bar = ft.SnackBar(
             content=ft.Row(
                 [
                     ft.Icon(ft.Icons.CHECK_CIRCLE_OUTLINE, color=ft.Colors.WHITE),
-                    ft.Text(
-                        f"Aula '{nombre_aula.value.strip()}' creada con éxito.",
-                        color=ft.Colors.WHITE,
-                        size=16,
-                    ),
+                    ft.Text(f"Aula '{nombre_aula.value.strip()}' creada con éxito.", color=ft.Colors.WHITE),
                 ],
                 spacing=10,
             ),
-            bgcolor="#2E7D32",  # verde éxito
+            bgcolor="#2E7D32",
             duration=3000,
             open=True,
         )
-
         cerrar_modal(e)
         page.update()
 
-
-    # --- Botones del modal (Reutilizados y adaptados) ---
-    btn_crear_modal = ft.ElevatedButton(
-        text="CREAR",
-        bgcolor="#2C2F3A",
-        color=ft.Colors.WHITE,
-        width=200,
-        height=60,
-        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
-        on_click=crear_aula, # <-- Conectado a la nueva función
-    )
-    
-    # Es crucial añadir un botón para cancelar/cerrar
-    btn_cancelar_modal = ft.TextButton(
-        text="Cancelar",
-        on_click=cerrar_modal # <-- Conectado a la función de cierre
+    # ================================
+    # BOTONES MODAL
+    # ================================
+    btn_guardar = ft.Container(
+        content=ft.Text("Crear Aula", color="#FFFFFF", size=16, weight=ft.FontWeight.BOLD),
+        gradient=ft.LinearGradient(colors=[COLOR_ACCENT, "#145C70"]),
+        width=160,
+        height=45,
+        border_radius=8,
+        alignment=ft.alignment.center,
+        ink=True,
+        on_click=crear_aula_action,
     )
 
-    # --- 1. El Formulario del Modal (El contenedor del centro) ---
-    # Este es el contenedor que simula el 'AlertDialog'
-    
+    btn_cancelar = ft.Container(
+        content=ft.Text("Cancelar", color=COLOR_TEXT_SEC, size=16, weight=ft.FontWeight.W_500),
+        border=ft.border.all(1, "#2C2C2C"),
+        border_radius=8,
+        width=130,
+        height=45,
+        alignment=ft.alignment.center,
+        ink=True,
+        on_click=cerrar_modal,
+    )
+
+    # ================================
+    # FORMULARIO MODAL
+    # ================================
     form_container = ft.Container(
-        width=700,  # más ancho para forma rectangular
-        height=350,
-        bgcolor="#121212",
-        border=ft.border.all(1, "#222222"),
+        width=700,
+        height=360,
+        bgcolor="#0B1418",
         border_radius=12,
-        padding=ft.padding.symmetric(horizontal=30, vertical=20),
+        border=ft.border.all(1, "#1E2C30"),
+        padding=30,
         content=ft.Column(
             [
-                # Header
                 ft.Row(
                     [
-                        ft.Icon(ft.Icons.ADD_BOX_OUTLINED, color=ft.Colors.WHITE),
-                        ft.Text("CREAR AULA", weight=ft.FontWeight.BOLD, size=22),
+                        ft.Icon(ft.Icons.ADD_BOX_OUTLINED, color=COLOR_ACCENT),
+                        ft.Text("CREAR AULA", color=COLOR_TEXT, size=22, weight=ft.FontWeight.BOLD),
                     ],
                     spacing=10,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
-                ft.Divider(height=8, color=ft.Colors.TRANSPARENT),
-
-                # Inputs (ocupando todo el ancho disponible del formulario)
-                ft.Column(
-                    [
-                        # ft.Text("Nombre del Aula:", weight=ft.FontWeight.BOLD),
-                        ft.Container(content=nombre_aula, width=640),
-                        # ft.Text("Descripción:", weight=ft.FontWeight.BOLD),
-                        ft.Container(content=descripcion, width=640, height=70),
-                    ],
-                    spacing=12,
-                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                ),
-
-                ft.Divider(height=5, color=ft.Colors.TRANSPARENT),
-
-                # Acciones: alineadas a la derecha
-                ft.Row(
-                    [
-                        ft.Container(expand=True),  # empuja los botones a la derecha
-                        ft.Row(
-                            [btn_cancelar_modal, btn_crear_modal],
-                            spacing=12,
-                            alignment=ft.MainAxisAlignment.END,
-                        ),
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                ),
+                ft.Divider(height=10, color="#1F3A44"),
+                nombre_aula,
+                descripcion,
+                ft.Row([btn_cancelar, btn_guardar], alignment=ft.MainAxisAlignment.END, spacing=10),
             ],
             spacing=12,
-            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
         ),
     )
 
-    # --- 2. El Contenedor Modal (El fondo gris/dimmer) ---
-    # Este contenedor ocupa toda la pantalla y centra el formulario
-    
     modal_container = ft.Container(
-        # Fondo semi-transparente para "oscurecer" la app
         bgcolor=ft.Colors.with_opacity(0.6, ft.Colors.BLACK),
-        
-        # Ocupa todo el espacio disponible
-        expand=True, 
-        
-        # Centra el 'form_container'
-        alignment=ft.alignment.center, 
-        
-        # El contenido es el formulario que definimos arriba
+        expand=True,
+        alignment=ft.alignment.center,
         content=form_container,
-        
-        # EMPIEZA OCULTO
         visible=False,
     )
 
-
-    # --- 4. Configuración Final de la Página ---
-    
-    # Preparamos el SnackBar (de tu código original)
-    page.snack_bar = ft.SnackBar(content=ft.Text(""))
-
-    # --- FUNCIÓN PARA CREAR BOTONES ---
-    def create_button(icon, text, width=350, height=220, on_click=None):
+    # ================================
+    # BOTONES PRINCIPALES (centrados)
+    # ================================
+    def create_button(icon, text, on_click=None, width=340, height=210):
         return ft.Container(
             content=ft.Column(
                 [
-                    ft.Icon(icon, size=80, color=ft.Colors.WHITE),
-                    ft.Text(
-                        text,
-                        size=26,
-                        color=ft.Colors.WHITE,
-                        text_align=ft.TextAlign.CENTER,
-                        weight=ft.FontWeight.W_500,
-                    ),
+                    ft.Icon(icon, size=70, color="#FFFFFF"),
+                    ft.Text(text, size=24, color="#FFFFFF", weight=ft.FontWeight.W_500),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             ),
-            bgcolor="#111111",
+            gradient=ft.LinearGradient(colors=[COLOR_BG_CARD, "#0C252D"]),
+            border=ft.border.all(1, "#1F3A44"),
+            border_radius=18,
             width=width,
             height=height,
-            border_radius=20,
             alignment=ft.alignment.center,
-            border=ft.border.all(1, "#2B2B2B"),
             ink=True,
             on_click=on_click,
-            shadow=ft.BoxShadow(
-                spread_radius=1,
-                blur_radius=15,
-                color=ft.Colors.with_opacity(0.3, ft.Colors.WHITE),
-                offset=ft.Offset(0, 5),
-            ),
-            animate=ft.Animation(300, "easeOut"),
+            shadow=ft.BoxShadow(spread_radius=0.5, blur_radius=12, color="#0D0D0D", offset=ft.Offset(0, 4)),
             on_hover=lambda e: (
-                setattr(e.control, "bgcolor", "#1E1E1E" if e.data == "true" else "#111111"),
                 setattr(
                     e.control,
-                    "shadow",
-                    ft.BoxShadow(
-                        spread_radius=2 if e.data == "true" else 1,
-                        blur_radius=25 if e.data == "true" else 15,
-                        color=ft.Colors.with_opacity(0.5 if e.data == "true" else 0.3, ft.Colors.WHITE),
-                        offset=ft.Offset(0, 8 if e.data == "true" else 5),
-                    ),
+                    "bgcolor",
+                    ft.LinearGradient(colors=[COLOR_BG_HOVER, "#133540"])
+                    if e.data == "true"
+                    else ft.LinearGradient(colors=[COLOR_BG_CARD, "#0C252D"]),
                 ),
                 e.control.update(),
             ),
-    )
+        )
 
-    # --- BOTONES IZQUIERDA Y DERECHA ---
     btn_crear_aula = create_button(ft.Icons.ADD, "Crear Aula", on_click=abrir_modal)
-    btn_tus_aulas = create_button(ft.Icons.GROUP, "Tus Aulas", on_click=lambda e: page.go("/aula_dashboard"))
-    # El botón de Herramientas ocupa el doble de alto
+    btn_tus_aulas = create_button(ft.Icons.GROUP, "Tus Aulas", on_click=lambda e: page.go("/tus_aulas"))
     btn_herramientas = create_button(
         ft.Icons.SETTINGS,
         "Herramientas",
-        height=(220 * 2) + 20,  # alto de dos botones más espacio
         on_click=lambda e: page.go("/herramientas"),
-        width=350,
+        height=440,
     )
 
-    # --- LAYOUT DE BOTONES ---
     botones = ft.Row(
         [
-            ft.Column(
-                [btn_crear_aula, btn_tus_aulas],
-                alignment=ft.MainAxisAlignment.CENTER,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=20,
-            ),
+            ft.Column([btn_crear_aula, btn_tus_aulas], spacing=20),
             btn_herramientas,
         ],
         alignment=ft.MainAxisAlignment.CENTER,
         spacing=40,
     )
 
-    # --- CABECERA ---
-    header = ft.Row(
-        [
-            ft.Container(expand=True),
-            logout_container,
-        ],
-        alignment=ft.MainAxisAlignment.END,
-    )
+    # ================================
+    # LAYOUT PRINCIPAL
+    # ================================
+    header = ft.Row([ft.Container(expand=True), logout_container], alignment=ft.MainAxisAlignment.END)
 
-    # --- CONTENEDOR PRINCIPAL ---
     contenido = ft.Column(
-        [
-            header,
-            lbl_bienvenida,
-            ft.Container(height=30),
-            botones,
-        ],
+        [header, lbl_bienvenida, ft.Text(f"ID Usuario: {id}", color=COLOR_TEXT_SEC), ft.Container(height=30), botones],
         alignment=ft.MainAxisAlignment.CENTER,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         expand=True,
@@ -326,24 +265,11 @@ def DashboardOptionsView(page: ft.Page):
 
     return ft.Container(
         gradient=ft.LinearGradient(
-            begin=ft.alignment.top_center,
-            end=ft.alignment.bottom_center,
-            colors=[
-                ft.Colors.BLACK,
-                ft.Colors.with_opacity(0.97, ft.Colors.BLUE_GREY_900),
-            ],
+            begin=ft.alignment.top_left,
+            end=ft.alignment.bottom_right,
+            colors=["#0C1C24", "#0E2329", "#08171C"],
         ),
-        content=ft.Stack(
-            [
-                # Elemento 1: El contenido principal (al fondo)
-                contenido,
-                
-                # Elemento 2: El modal (encima)
-                modal_container,
-            ],
-            # Hacemos que el Stack ocupe toda la página
-            expand=True 
-        ),
-        alignment=ft.alignment.center,  # 👈 centra vertical y horizontal
-        expand=True,                    # ocupa toda la pantalla
+        content=ft.Stack([contenido, modal_container]),
+        alignment=ft.alignment.center,
+        expand=True,
     )

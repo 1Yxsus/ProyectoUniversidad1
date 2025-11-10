@@ -13,7 +13,11 @@ def agregar_usuario_a_aula(id_aula: int, id_usuario: int, rol: str = "ALUMNO"):
     except Exception as ex:
         print("Error agregar_usuario_a_aula:", ex)
         return False, str(ex)
-    
+
+def asignar_admin_a_usuario(id_aula: int, nuevo_admin_id: int):
+    model = AulaUsuarioModel()
+    return model.asignar_admin(id_aula, nuevo_admin_id)
+
 def obtener_miembros_de_aula(id_aula: int):
     """
     Devuelve la lista de miembros de un aula.
@@ -22,6 +26,14 @@ def obtener_miembros_de_aula(id_aula: int):
     aula_usuario_model = AulaUsuarioModel()
     result = aula_usuario_model.get_by_aula(id_aula)
     return result
+
+def obtener_rol_usuario_en_aula(id_aula, id_usuario):
+    model = AulaUsuarioModel()
+    return model.get_rol_en_aula(id_aula, id_usuario)
+
+def obtener_roles_por_usuario(id_usuario):
+    model = AulaUsuarioModel()
+    return model.get_roles_por_usuario(id_usuario)
 
 def eliminar_usuario_de_aula(id_aula: int,id_usuario: int):
     """
