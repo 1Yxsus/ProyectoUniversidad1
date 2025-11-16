@@ -2,10 +2,11 @@ import flet as ft
 from app.utils.vald_text_fields import validar_formulario
 from app.controllers.syllabus_controller import (
     create_syllabus, get_syllabus_by_curso,
-    get_texto_syllabus_por_curso, update_syllabus_by_curso
+    get_texto_syllabus_por_curso, update_syllabus_by_curso, procesar_syllabus_pdf
 )
 from app.utils.is_staff_verification import is_staff_verification
-
+from app.utils.show_succes import show_success
+import os, traceback
 
 def SyllabusCursoView(page: ft.Page, curso_dict: dict, id_aula, func_load_content):
     """
@@ -152,89 +153,6 @@ def SyllabusCursoView(page: ft.Page, curso_dict: dict, id_aula, func_load_conten
         page.update()
 
     # --------------------------------------------------------------
-    # INSTRUCCIONES (IA)
-    # --------------------------------------------------------------
-    prompt_texto = """
-    Quiero que identifiques el punto IV. UNIDADES DE APRENDIZAJE, seleccionando la columna SEMANA y CONTENIDO TEMÁTICO del syllabus.
-    Dame el resultado en formato bash, así:
-    Semana N° 1 Tema 1: ... Tema 2: ... Tema 3: ...
-    Semana N° 2 Tema 1: ... Tema 2: ... Tema 3: ...
-    Y así sucesivamente hasta la última semana del documento, dejando un salto en línea por cada semana con su respectivo tema.
-    """
-
-    instruccion_texto = f"""Los docentes suelen enviar el syllabus en formato PDF o Word.
-Para adaptarlo a la plataforma, utiliza una herramienta de inteligencia artificial (ChatGPT, Gemini, u otra).
-Sube el archivo del syllabus y pega el siguiente prompt (usa el botón de copiar).
-El resultado en formato especial se debe pegar en el campo de texto del syllabus.
-    """
-
-    def abrir_modal_instruccion(e=None):
-        modal_instruccion.visible = True
-        page.update()
-
-    def cerrar_modal_instruccion(e=None):
-        modal_instruccion.visible = False
-        page.update()
-
-    def copiar_instruccion(e=None):
-        page.set_clipboard(prompt_texto)
-        page.snack_bar = ft.SnackBar(ft.Text("📋 Instrucción copiada al portapapeles"))
-        page.snack_bar.open = True
-        page.update()
-
-    btn_copiar_instruccion_inline = ft.IconButton(
-        icon=ft.Icons.CONTENT_COPY,
-        tooltip="Copiar instrucción",
-        on_click=copiar_instruccion,
-        icon_color=COLOR_ACCENT,
-        bgcolor=ft.Colors.with_opacity(0.08, ft.Colors.WHITE),
-    )
-
-    modal_instruccion = ft.Container(
-        bgcolor=ft.Colors.with_opacity(0.7, ft.Colors.BLACK),
-        expand=True,
-        alignment=ft.alignment.center,
-        visible=False,
-        content=ft.Container(
-            width=520,
-            height=260,
-            bgcolor="#0B1418",
-            border_radius=12,
-            border=ft.border.all(1, "#1E2C30"),
-            padding=20,
-            content=ft.Column(
-                [
-                    ft.Row([
-                        ft.Text("Instrucción IA", size=18, weight=ft.FontWeight.BOLD, color=COLOR_TEXT_PRIMARY),
-                        ft.Container(expand=True),
-                        btn_copiar_instruccion_inline,
-                        ft.IconButton(icon=ft.Icons.CLOSE, on_click=cerrar_modal_instruccion, icon_color="#AAAAAA")
-                    ]),
-                    ft.Divider(height=10, color="#1E2C30"),
-                    ft.Text(instruccion_texto, color=COLOR_TEXT_SECONDARY, selectable=True, size=14),
-                    ft.Row(
-                        [
-                            ft.Container(expand=True),
-                            ft.Container(
-                                content=ft.Text("Copiar instrucción", color="#FFFFFF"),
-                                gradient=ft.LinearGradient(colors=[COLOR_ACCENT, "#145C70"]),
-                                border_radius=8,
-                                width=170,
-                                height=40,
-                                alignment=ft.alignment.center,
-                                ink=True,
-                                on_click=copiar_instruccion,
-                            )
-                        ],
-                        alignment=ft.MainAxisAlignment.END
-                    ),
-                ],
-                spacing=10,
-            ),
-        ),
-    )
-
-    # --------------------------------------------------------------
     # FUNCIONES DE GUARDADO
     # --------------------------------------------------------------
     def validar_y_guardar(e):
@@ -248,8 +166,7 @@ El resultado en formato especial se debe pegar en el campo de texto del syllabus
                 create_syllabus(curso_id, text_area_syllabus.value)
             reload_syllabus()
             cerrar_modal()
-            page.snack_bar = ft.SnackBar(ft.Text("✅ Syllabus guardado correctamente"))
-            page.snack_bar.open = True
+            show_success(page, "✅ Syllabus guardado correctamente")
         except Exception as ex:
             page.snack_bar = ft.SnackBar(ft.Text(f"Error al guardar: {ex}"), bgcolor="#A93226")
             page.snack_bar.open = True
@@ -258,7 +175,157 @@ El resultado en formato especial se debe pegar en el campo de texto del syllabus
     # --------------------------------------------------------------
     # MODAL PRINCIPAL
     # --------------------------------------------------------------
-    modal_title = ft.Text("AÑADIR SYLLABUS", weight=ft.FontWeight.BOLD, size=22, color=COLOR_TEXT_PRIMARY)
+    # --- Estado interno ---
+    selected_option = ft.Ref[ft.Dropdown]()
+    upload_button = ft.Ref[ft.ElevatedButton]()
+
+    # --- Control dinámico según selección ---
+    def on_option_change(e):
+        opcion = selected_option.current.value if selected_option and selected_option.current else None
+
+        # mostrar/ocultar botón subir archivo (si el ref ya está disponible)
+        mostrar_upload = opcion in ("Subir PDF", "Subir Word")
+        if upload_button and upload_button.current:
+            upload_button.current.visible = mostrar_upload
+
+        # text_area_syllabus es un control directo (no Ref) — actualizar su visible directamente
+        if opcion in ("Subir PDF", "Subir Word", "Subir Texto"):
+            text_area_syllabus.visible = True
+        else:
+            text_area_syllabus.visible = False
+
+        page.update()
+
+    # --- FilePicker handler para procesar PDFs/DOCs con IA ---
+    def on_file_picked(e: ft.FilePickerResultEvent):
+        if not e.files:
+            return
+        archivo = e.files[0]
+        try:
+            with open(archivo.path, "rb") as f:
+                file_bytes = f.read()
+        except Exception as ex:
+            traceback.print_exc()
+            page.snack_bar = ft.SnackBar(content=ft.Text(f"Error al leer archivo: {ex}"), bgcolor="#A93226")
+            page.snack_bar.open = True
+            page.update()
+            return
+
+        # mostrar overlay de carga
+        # traer loading_overlay al frente y mostrarlo
+        if loading_overlay in page.overlay:
+            try:
+                page.overlay.remove(loading_overlay)
+            except Exception:
+                pass
+        page.overlay.append(loading_overlay)
+        loading_overlay.visible = True
+        page.update()
+
+
+        page.snack_bar = ft.SnackBar(content=ft.Text("Procesando archivo con IA..."))
+        page.snack_bar.open = True
+        page.update()
+
+        try:
+            success, response = procesar_syllabus_pdf(file_bytes)
+            print("DEBUG: procesar_syllabus - file len =", len(file_bytes), "curso_id=", curso_id)
+        except Exception as ex:
+            traceback.print_exc()
+            # ocultar overlay de carga al fallar
+            loading_overlay.visible = False
+            page.update()
+            page.snack_bar = ft.SnackBar(content=ft.Text("Excepción al procesar: revisa consola"), bgcolor="#A93226")
+            page.snack_bar.open = True
+            page.update()
+            return
+
+        if not success:
+            # ocultar overlay de carga si la IA devolvió error
+            loading_overlay.visible = False
+            page.update()
+            page.snack_bar = ft.SnackBar(content=ft.Text(f"ERROR: {response}"), bgcolor="#A93226")
+            page.snack_bar.open = True
+            page.update()
+            return
+
+        # response esperado: texto del syllabus procesado por la IA
+        print("DEBUG: procesar_syllabus response type=", type(response))
+        text_area_syllabus.value = str(response)
+
+        # ocultar overlay de carga al completar correctamente
+        loading_overlay.visible = False
+        page.update()
+
+
+        page.snack_bar = ft.SnackBar(content=ft.Text("Syllabus generado y guardado ✅"))
+        page.snack_bar.open = True
+        page.update()
+
+    file_picker = ft.FilePicker(on_result=on_file_picked)
+    
+    # --- Overlay de carga (progress) --- (añadir UNA vez)
+    # fondo muy tenue para que NO 'desaparezca' el contenido de fondo
+    loading_overlay = ft.Container(
+        bgcolor=ft.Colors.with_opacity(0.12, "#000000"),  # menos opaco
+        expand=True,
+        alignment=ft.alignment.center,
+        visible=False,
+        # caja central también semi-transparente para ver fondo a través de ella
+        content=ft.Container(
+            padding=16,
+            border_radius=12,
+            bgcolor=ft.Colors.with_opacity(0.80, "#0B1418"),
+            content=ft.Column(
+                [
+                    ft.ProgressRing(width=60, height=60),
+                    ft.Container(height=12),
+                    ft.Text("""Procesando con IA...
+                            Recuerda que los resultados pueden llegar a ser los no acertados, asegurate de revisarlo.""", color=COLOR_TEXT_PRIMARY, text_align=ft.TextAlign.CENTER),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+       ),
+    )
+    # añadir overlay de carga (solo una vez)
+    if loading_overlay not in page.overlay:
+        page.overlay.append(loading_overlay)
+
+    # --- Dropdown de selección ---
+    dropdown_opciones = ft.Dropdown(
+        ref=selected_option,
+        label="Selecciona cómo deseas ingresar el syllabus",
+        options=[
+            ft.dropdown.Option("Subir PDF"),
+            ft.dropdown.Option("Subir Word"),
+            ft.dropdown.Option("Subir Texto"),
+        ],
+        width=300,
+        on_change=on_option_change,
+    )
+
+    # --- Botón subir archivo ---
+    btn_subir_archivo = ft.ElevatedButton(
+        ref=upload_button,
+        text="Subir archivo",
+        icon=ft.Icons.UPLOAD_FILE,
+        visible=False,
+        bgcolor="#123944",
+        color="#FFFFFF",
+        on_click=lambda e: file_picker.pick_files(allow_multiple=False)
+    )
+
+    # --- TextField si se elige “Subir texto” ---
+
+    # --- Título y botones del modal ---
+    modal_title = ft.Text(
+        "AÑADIR SYLLABUS",
+        weight=ft.FontWeight.BOLD,
+        size=22,
+        color=COLOR_TEXT_PRIMARY
+    )
+
     btn_guardar = ft.Container(
         content=ft.Text("Guardar", color="#FFFFFF", size=16),
         gradient=ft.LinearGradient(colors=[COLOR_ACCENT, "#145C70"]),
@@ -269,6 +336,7 @@ El resultado en formato especial se debe pegar en el campo de texto del syllabus
         ink=True,
         on_click=validar_y_guardar,
     )
+
     btn_cancelar = ft.Container(
         content=ft.Text("Cancelar", color=COLOR_TEXT_SECONDARY, size=16),
         border=ft.border.all(1, "#2C2C2C"),
@@ -279,25 +347,8 @@ El resultado en formato especial se debe pegar en el campo de texto del syllabus
         ink=True,
         on_click=cerrar_modal,
     )
-    btn_instruccion = ft.Container(
-        content=ft.Row(
-            [
-                ft.Icon(ft.Icons.REMOVE_RED_EYE, color="#FFFFFF"),
-                ft.Text("Ver instrucción", color="#FFFFFF", size=15, weight=ft.FontWeight.BOLD),
-            ],
-            alignment=ft.MainAxisAlignment.CENTER,  # 🔹 centra el contenido
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=8,
-        ),
-        gradient=ft.LinearGradient(colors=[COLOR_ACCENT, "#145C70"]),
-        width=180,
-        height=45,
-        border_radius=8,
-        alignment=ft.alignment.center,  # 🔹 asegura centrado del contenedor
-        ink=True,
-        on_click=abrir_modal_instruccion,
-    )
 
+    # --- NUEVO CONTENIDO DEL MODAL (sin instrucciones) ---
     modal_container = ft.Container(
         bgcolor=ft.Colors.with_opacity(0.65, "#000000"),
         expand=True,
@@ -305,25 +356,56 @@ El resultado en formato especial se debe pegar en el campo de texto del syllabus
         visible=False,
         content=ft.Container(
             width=700,
-            height=500,
+            height=600,
             bgcolor="#0B1418",
             border_radius=12,
             border=ft.border.all(1, "#1E2C30"),
             padding=30,
             content=ft.Column(
                 [
-                    ft.Row([ft.Icon(ft.Icons.BOOK_OUTLINED, color=COLOR_ACCENT), modal_title], spacing=10),
-                    ft.Row([btn_instruccion, ft.Text("Abrir plantilla recomendada", size=12, color="#AAAAAA")]),
+                    ft.Row(
+                        [ft.Icon(ft.Icons.BOOK_OUTLINED, color=COLOR_ACCENT), modal_title],
+                        spacing=10
+                    ),
+
+                    # --- Nuevo dropdown para seleccionar el método ---
+                    ft.Text(
+                        "Método de ingreso de syllabus",
+                        size=16,
+                        color=COLOR_TEXT_SECONDARY,
+                        weight=ft.FontWeight.BOLD
+                    ),
+
+                    dropdown_opciones,
+                    btn_subir_archivo,
+
+                    # --- Campo original del syllabus (texto final procesado) ---
                     text_area_syllabus,
-                    ft.Row([btn_cancelar, btn_guardar], alignment=ft.MainAxisAlignment.END, spacing=10),
+
+                    ft.Row(
+                        [btn_cancelar, btn_guardar],
+                        alignment=ft.MainAxisAlignment.END,
+                        spacing=12
+                    ),
                 ],
                 spacing=15,
             ),
         ),
     )
 
-    page.overlay.append(modal_container)
-    page.overlay.append(modal_instruccion)
+    # Añadir modal al overlay
+    # asegurarse de añadir el modal y el file_picker al overlay (modal antes que loading)
+    if modal_container not in page.overlay:
+        page.overlay.append(modal_container)
+    if file_picker not in page.overlay:
+        page.overlay.append(file_picker)
+    # asegurar que el loading_overlay esté al final (por si se añadió antes): reinsertarlo para traerlo al frente
+    if loading_overlay in page.overlay:
+        try:
+            page.overlay.remove(loading_overlay)
+        except Exception:
+            pass
+    page.overlay.append(loading_overlay)
 
     # ==============================================================
     # TARJETAS DE SEMANAS
@@ -408,9 +490,10 @@ El resultado en formato especial se debe pegar en el campo de texto del syllabus
         padding=ft.padding.all(50),
     )
 
+    # modal_container ya está en page.overlay, no lo incluimos aquí para evitar duplicados/z-index issues
     return ft.Stack(
         [
-            ft.Container(
+           ft.Container(
                 gradient=ft.LinearGradient(
                     begin=ft.alignment.top_left,
                     end=ft.alignment.bottom_right,
@@ -419,8 +502,6 @@ El resultado en formato especial se debe pegar en el campo de texto del syllabus
                 expand=True,
             ),
             layout,
-            modal_container,
-            modal_instruccion,
         ],
         expand=True,
     )

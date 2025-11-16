@@ -3,6 +3,7 @@ from app.utils.vald_text_fields import validar_formulario
 from app.controllers.tareas_controller import crear_tarea, actualizar_tarea, obtener_tareas_por_curso_ordenadas
 import datetime
 from app.utils.is_staff_verification import is_staff_verification
+from app.utils.show_succes import show_success
 
 
 def TareasCursoView(page: ft.Page, curso_dict: dict, selected_id: int, func_cursos_load):
@@ -174,8 +175,7 @@ def TareasCursoView(page: ft.Page, curso_dict: dict, selected_id: int, func_curs
 
             cerrar_modal(e)
             func_cursos_load("Tareas", curso_dict)
-            page.snack_bar = ft.SnackBar(ft.Text("✅ Tarea creada exitosamente"))
-            page.snack_bar.open = True
+            show_success(page, "✅ Tarea guardada correctamente")
         except Exception as ex:
             page.snack_bar = ft.SnackBar(ft.Text(f"Error al guardar tarea: {ex}"))
             page.snack_bar.open = True

@@ -1,4 +1,14 @@
 from app.models.syllabus_modelo import SyllabusModel
+from app.services.gemini_service import GeminiService
+from google import genai
+import os
+
+try:
+    c = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    r = c.models.generate_content(model="gemini-2.0-flash", contents=["Hola"])
+    print("OK:", type(r), getattr(r, "text", str(r)))
+except Exception as e:
+    print("ERROR:", e)
 
 def get_syllabus_by_curso(id_curso: int):
     """
@@ -42,3 +52,16 @@ def get_syllabus_by_curso(id_curso):
     """
     modelo = SyllabusModel()
     return modelo.get_by_curso(id_curso)
+
+gemini = GeminiService()
+
+def procesar_syllabus_pdf(file_bytes):
+    """
+    Envía un PDF a Gemini, guarda el resultado en BD y lo retorna.
+    """
+    success, resultado = gemini.analizar_syllabus_pdf(file_bytes)
+
+    if not success:
+        return False, f"Error procesando PDF con IA: {resultado}"
+    
+    return True, resultado

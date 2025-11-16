@@ -3,6 +3,7 @@ from app.controllers.aulas_controller import actualizar_aula
 from app.utils.vald_text_fields import validar_formulario
 from app.controllers.aulas_usuario_controller import obtener_rol_usuario_en_aula, agregar_usuario_a_aula
 from app.utils.is_staff_verification import is_staff_verification
+from app.utils.show_succes import show_success
 
 
 def EditarAulaView(page: ft.Page, func_load_content, aula_dict: dict = None, on_update=None):
@@ -109,8 +110,7 @@ def EditarAulaView(page: ft.Page, func_load_content, aula_dict: dict = None, on_
             pass
 
         # feedback visual
-        page.snack_bar = ft.SnackBar(ft.Text("✅ Aula actualizada correctamente"))
-        page.snack_bar.open = True
+        show_success(page, "Cambios guardados ✔")
 
         # callback para refrescar dashboard
         if callable(on_update):

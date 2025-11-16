@@ -4,6 +4,7 @@ from app.utils.vald_text_fields import validar_formulario
 from app.controllers.aulas_controller import obtener_aula_by_id
 from app.controllers.aulas_usuario_controller import obtener_miembros_de_aula
 from app.utils.is_staff_verification import is_staff_verification
+from app.utils.show_succes import show_success
 
 
 def contenedor_cursos(page: ft.Page, id_aula: int, func_load_content):
@@ -163,6 +164,8 @@ def contenedor_cursos(page: ft.Page, id_aula: int, func_load_content):
             crear_curso(id_aula, nombre_curso.value, docente.value, delegado_id)
         cerrar_modal(e)
         cargar_grid_cursos(id_aula)
+        show_success(page, "✅ Curso guardado correctamente")
+        
 
     def abrir_modal_para_editar(curso_dict):
         nonlocal edit_mode, editing_course_id

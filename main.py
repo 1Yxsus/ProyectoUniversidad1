@@ -8,6 +8,7 @@ from app.views.aula_dashboard import AulaDashboardView
 from app.views.herramientas_view import ToolsDashboardView
 from app.views.pomodoro_view import PomodoroView
 from app.views.tus_aulas_view import AulasView
+from app.views.probar_syllabus import TestGeminiView
 
 
 def main(page: ft.Page):
@@ -33,9 +34,12 @@ def main(page: ft.Page):
             page.views.append(ft.View("/pomodoro", [PomodoroView(page)]))
         elif page.route == "/tus_aulas":
             page.views.append(ft.View("/tus_aulas", [AulasView(page)]))
+        elif page.route == "/test_syllabus":
+            page.views.append(ft.View("/test_syllabus", [TestGeminiView(page)]))
 
-
+        
         page.update()
+
 
     page.on_route_change = route_change
     page.go(page.route)

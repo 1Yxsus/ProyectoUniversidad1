@@ -94,9 +94,6 @@ class AulaUsuarioModel:
             if cursor.fetchone()[0] == 0:
                 raise Exception("Usuario no pertenece a la aula")
 
-            # demote any existing admins (opcional: permitir varios admins si quieres)
-            cursor.execute("UPDATE aulas_usuarios SET rol = %s WHERE id_aula = %s AND rol = %s", ("ALUMNO", id_aula, "ADMIN"))
-
             # assign ADMIN to selected
             cursor.execute("UPDATE aulas_usuarios SET rol = %s WHERE id_aula = %s AND id_usuario = %s", ("ADMIN", id_aula, nuevo_admin_id))
 

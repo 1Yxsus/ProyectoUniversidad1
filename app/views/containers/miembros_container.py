@@ -7,6 +7,7 @@ from app.controllers.aulas_usuario_controller import (
 )
 from app.utils.is_staff_verification import is_staff_verification
 from app.utils.vald_text_fields import validar_formulario
+from app.utils.show_succes import show_success
 
 
 def MiembrosAulaView(page: ft.Page, func_load_content, id_aula: int, miembros_list=None):
@@ -189,163 +190,208 @@ def MiembrosAulaView(page: ft.Page, func_load_content, id_aula: int, miembros_li
     # ------------------------------------------------------
     # TARJETAS DE MIEMBROS
     # ------------------------------------------------------
-    def open_confirm_assign(e, miembro):
-        nombre = f"{miembro.get('nombre','')} {miembro.get('apellido','')}".strip()
+    # ------------------------------------------------------
+    # TABLA DE MIEMBROS (NUEVO)
+    # ------------------------------------------------------
 
-        def _on_confirm(ev):
+    def asignar_admin_accion(miembro):
+        """Crea un modal independiente en overlay para confirmar asignación de admin."""
+        # modal content
+        title = ft.Text("Confirmar asignación de Admin", weight=ft.FontWeight.BOLD)
+        body = ft.Text(f"¿Asignar rol ADMIN a {miembro.get('apellido','')} {miembro.get('nombre','')} (ID {miembro.get('id_usuario')})?")
+
+        def cerrar(e=None):
             try:
-                asignar_admin_a_usuario(id_aula, miembro.get("id_usuario"))
+                page.overlay.remove(modal)
+            except Exception:
+                pass
+            page.update()
+
+        def confirmar(e):
+            try:
+                asignar_admin_a_usuario(id_aula, miembro["id_usuario"])
                 reload_members()
-                page.snack_bar = ft.SnackBar(ft.Text("✅ Administrador asignado"))
-                page.snack_bar.open = True
+                show_success(page, "🔑 Rol ADMIN asignado correctamente")
             except Exception as ex:
-                page.snack_bar = ft.SnackBar(ft.Text(f"Error: {ex}"))
+                page.snack_bar = ft.SnackBar(ft.Text(f"Error: {ex}"), bgcolor="#A93226")
                 page.snack_bar.open = True
-            cerrar_modal(ev)
+            finally:
+                cerrar()
 
-        confirm_container = ft.Container(
-            width=500,
-            height=160,
-            bgcolor="#0B1418",
-            border_radius=12,
-            border=ft.border.all(1, "#1E2C30"),
-            padding=20,
-            content=ft.Column(
-                [
-                    ft.Text("Confirmar asignación", size=18, weight=ft.FontWeight.BOLD, color=COLOR_TEXT_PRIMARY),
-                    ft.Text(f"¿Asignar rol ADMIN a {nombre}?", color=COLOR_TEXT_SECONDARY),
-                    ft.Row(
-                        [
-                            ft.Container(
-                                content=ft.Text("Cancelar", color="#AAAAAA"),
-                                border=ft.border.all(1, "#2C2C2C"),
-                                border_radius=8,
-                                padding=ft.padding.symmetric(horizontal=16, vertical=8),
-                                on_click=cerrar_modal,
-                                ink=True,
-                            ),
-                            ft.Container(
-                                content=ft.Text("Confirmar", color="#FFFFFF"),
-                                gradient=ft.LinearGradient(
-                                    begin=ft.alignment.center_left,
-                                    end=ft.alignment.center_right,
-                                    colors=[COLOR_ACCENT, "#145C70"],
-                                ),
-                                border_radius=8,
-                                padding=ft.padding.symmetric(horizontal=16, vertical=8),
-                                ink=True,
-                                on_click=_on_confirm,
-                            ),
-                        ],
-                        alignment=ft.MainAxisAlignment.END,
-                    ),
-                ],
-                spacing=12,
+        actions = ft.Row(
+            [
+                ft.TextButton("Cancelar", on_click=lambda e: cerrar()),
+                ft.ElevatedButton("Confirmar", on_click=confirmar),
+            ],
+            alignment=ft.MainAxisAlignment.END,
+            spacing=12,
+        )
+
+        modal = ft.Container(
+            bgcolor=ft.Colors.with_opacity(0.65, "#000000"),
+            expand=True,
+            alignment=ft.alignment.center,
+            content=ft.Container(
+                width=520,
+                height=190,
+                padding=ft.padding.all(20),
+                border_radius=10,
+                bgcolor="#0B1418",
+                content=ft.Column([ft.Row([title]), ft.Divider(height=8), body, ft.Container(height=12), actions], spacing=12),
             ),
         )
 
-        modal_container.content = confirm_container
-        modal_container.visible = True
+        page.overlay.append(modal)
         page.update()
 
-    def eliminar_y_refrescar(e, miembro):
-        try:
-            eliminar_usuario_de_aula(id_aula, miembro.get("id_usuario"))
-            reload_members()
-            page.snack_bar = ft.SnackBar(ft.Text("🗑 Miembro eliminado"))
-            page.snack_bar.open = True
-        except Exception as ex:
-            page.snack_bar = ft.SnackBar(ft.Text(f"Error al eliminar: {ex}"))
-            page.snack_bar.open = True
+    def eliminar_miembro_accion(miembro):
+        """Crea un modal independiente en overlay para confirmar eliminación."""
+        title = ft.Text("Confirmar eliminación", weight=ft.FontWeight.BOLD)
+        body = ft.Text(f"¿Eliminar a {miembro.get('apellido','')} {miembro.get('nombre','')} (ID {miembro.get('id_usuario')}) del aula? Esta acción no se puede deshacer.")
+
+        def cerrar(e=None):
+            try:
+                page.overlay.remove(modal)
+            except Exception:
+                pass
+            page.update()
+
+        def confirmar(e):
+            try:
+                eliminar_usuario_de_aula(id_aula, miembro["id_usuario"])
+                # Si el usuario se eliminó a sí mismo, navegamos al listado de aulas
+                is_self = miembro.get("id_usuario") == current_user_id
+                if is_self:
+                    # cerrar modal y llevar al apartado "Aulas"
+                    try:
+                        page.overlay.remove(modal)
+                    except Exception:
+                        pass
+                    page.update()
+                    try:
+                        page.go("/tus_aulas")
+                    except Exception:
+                        func_load_content("Aulas")
+                    return
+                # caso normal: refrescar lista y mostrar confirmación
+                reload_members()
+                show_success(page, "🗑️ Miembro eliminado correctamente")
+            except Exception as ex:
+                page.snack_bar = ft.SnackBar(ft.Text(f"Error: {ex}"), bgcolor="#A93226")
+                page.snack_bar.open = True
+            finally:
+                cerrar()
+
+        actions = ft.Row(
+           [
+                ft.TextButton("Cancelar", on_click=lambda e: cerrar()),
+                ft.ElevatedButton("Eliminar", bgcolor="#D9534F", on_click=confirmar),
+            ],
+           alignment=ft.MainAxisAlignment.END,
+            spacing=12,
+        )
+
+        modal = ft.Container(
+           bgcolor=ft.Colors.with_opacity(0.65, "#000000"),
+            expand=True,
+            alignment=ft.alignment.center,
+            content=ft.Container(
+                width=520,
+                height=200,
+                padding=ft.padding.all(20),
+                border_radius=10,
+                bgcolor="#0B1418",
+                content=ft.Column([ft.Row([title]), ft.Divider(height=8), body, ft.Container(height=12), actions], spacing=12),
+            ),
+        )
+
+        page.overlay.append(modal)
         page.update()
 
-    def card_miembro(miembro):
-        nombre_completo = f"{miembro.get('nombre','')} {miembro.get('apellido','')}".strip()
-        email = miembro.get("email", "")
-        is_admin = str(miembro.get("rol","")).upper() == "ADMIN"
+    def construir_filas(miembros):
+        filas = []
 
-        acciones = []
-        if is_staff and not is_admin:
-            acciones.append(
-                ft.IconButton(
-                    icon=ft.Icons.STAR_BORDER,
+        for m in miembros:
+            nombre_completo = f"{m.get('apellido', '')} {m.get('nombre', '')}".strip()
+            codigo = m.get("id_usuario", "-")
+            rol_actual = str(m.get("rol", "") or "ALUMNO").upper()
+            es_admin = rol_actual == "ADMIN"
+
+            # Botones de acción
+            botones = []
+
+            # Solo STAFF puede administrar
+            if is_staff and not es_admin:
+                botones.append(ft.IconButton(
+                    icon=ft.Icons.ADMIN_PANEL_SETTINGS,
                     icon_color=COLOR_ACCENT,
-                    tooltip="Asignar como ADMIN",
-                    on_click=lambda e, m=miembro: open_confirm_assign(e, m),
-                )
-            )
-        if is_staff:
-            acciones.append(
-                ft.IconButton(
-                    icon=ft.Icons.DELETE,
+                    tooltip="Asignar Admin",
+                    on_click=lambda e, miembro=m: asignar_admin_accion(miembro),
+                ))
+
+            # Mostrar botón eliminar si soy staff (puedo eliminar a otros)
+            # o si la fila corresponde a mí (permitir "salirme" aunque no sea staff)
+            if is_staff or m.get("id_usuario") == current_user_id:
+                # si es el mismo usuario, cambiar tooltip/icon si quieres diferenciar ("Salir del aula")
+                tooltip = "Salir del aula" if m.get("id_usuario") == current_user_id else "Eliminar miembro"
+                icon = ft.Icons.EXIT_TO_APP if m.get("id_usuario") == current_user_id else ft.Icons.DELETE
+                botones.append(ft.IconButton(
+                    icon=icon,
                     icon_color="#D9534F",
-                    tooltip="Eliminar miembro",
-                    on_click=lambda e, m=miembro: eliminar_y_refrescar(e, m),
+                    tooltip=tooltip,
+                    on_click=lambda e, miembro=m: eliminar_miembro_accion(miembro),
+                ))
+
+            filas.append(
+                ft.DataRow(
+                    cells=[
+                        ft.DataCell(ft.Text(nombre_completo, color=COLOR_TEXT_PRIMARY)),
+                        ft.DataCell(ft.Text(codigo, color=COLOR_TEXT_SECONDARY)),
+                        # nueva celda de Rol
+                        ft.DataCell(
+                            ft.Text(
+                                rol_actual.title(),  # "Admin", "Alumno", etc.
+                                color=COLOR_ACCENT if es_admin else COLOR_TEXT_SECONDARY,
+                                weight=ft.FontWeight.BOLD if es_admin else ft.FontWeight.NORMAL
+                            )
+                        ),
+                        ft.DataCell(ft.Row(botones, spacing=5)),
+                    ]
                 )
             )
 
-        badge = ft.Container(
-            content=ft.Text("ADMIN", size=10, color="#FFFFFF"),
-            padding=ft.padding.symmetric(horizontal=8, vertical=4),
-            bgcolor="#1C8DB0",
-            border_radius=6,
-            visible=is_admin,
-        )
+        return filas
 
-        return ft.Container(
-            content=ft.Row(
-                [
-                    ft.Column(
-                        [
-                            ft.Row([ft.Text(nombre_completo, size=16, color=COLOR_TEXT_PRIMARY, weight=ft.FontWeight.W_600), badge], spacing=8),
-                            ft.Text(email, size=12, color=COLOR_TEXT_SECONDARY),
-                        ]
-                    ),
-                    ft.Container(expand=True),
-                    ft.Row(acciones, spacing=5),
-                ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            ),
-            bgcolor=ft.LinearGradient(
-                begin=ft.alignment.top_left,
-                end=ft.alignment.bottom_right,
-                colors=[COLOR_BG_CARD, "#0C252D"],
-            ),
-            border_radius=10,
-            border=ft.border.all(1, COLOR_BORDER_CARD),
-            padding=ft.padding.symmetric(horizontal=20, vertical=12),
-            on_hover=lambda e: (
-                setattr(
-                    e.control,
-                    "bgcolor",
-                    ft.LinearGradient(
-                        begin=ft.alignment.top_left,
-                        end=ft.alignment.bottom_right,
-                        colors=[COLOR_BG_CARD_HOVER, "#133540"]
-                    ) if e.data == "true" else
-                    ft.LinearGradient(
-                        begin=ft.alignment.top_left,
-                        end=ft.alignment.bottom_right,
-                        colors=[COLOR_BG_CARD, "#0C252D"]
-                    ),
-                ),
-                e.control.update(),
-            ),
-        )
+    tabla_miembros = ft.DataTable(
+        columns=[
+            ft.DataColumn(ft.Text("Apellidos y Nombres", color=COLOR_TEXT_PRIMARY, weight="bold")),
+            ft.DataColumn(ft.Text("Código", color=COLOR_TEXT_PRIMARY, weight="bold")),
+            ft.DataColumn(ft.Text("Rol", color=COLOR_TEXT_PRIMARY, weight="bold")),
+            ft.DataColumn(ft.Text("Acciones", color=COLOR_TEXT_PRIMARY, weight="bold")),
+        ],
+        rows=construir_filas(miembros_list),
+        border=ft.border.all(1, COLOR_BORDER_CARD),
+        heading_row_color=ft.Colors.with_opacity(0.15, COLOR_ACCENT),
+        data_row_color={"hovered": COLOR_BG_CARD_HOVER},
+        column_spacing=40,
+        horizontal_margin=20,
+        divider_thickness=1,
+    )
 
-    # ------------------------------------------------------
-    # LISTA DE MIEMBROS
-    # ------------------------------------------------------
+    # función para refrescar la tabla
     def reload_members():
         nonlocal miembros_list
         miembros_list = obtener_miembros_de_aula(id_aula)
-        lista_miembros.content.controls = [card_miembro(m) for m in miembros_list]
+        tabla_miembros.rows = construir_filas(miembros_list)
         page.update()
+
 
     lista_miembros = ft.Container(
         expand=True,
-        content=ft.Column([card_miembro(m) for m in miembros_list], spacing=15, scroll=ft.ScrollMode.AUTO),
+        padding=20,
+        content=tabla_miembros,
     )
+
 
     # ------------------------------------------------------
     # ESTRUCTURA PRINCIPAL

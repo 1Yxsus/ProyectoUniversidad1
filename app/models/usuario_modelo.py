@@ -44,14 +44,22 @@ class UsuarioModel:
         return result
 
 
-    def update(self, id_usuario, nombre, apellido, correo):
-        query = "UPDATE usuarios SET nombre=%s, apellido=%s, correo=%s WHERE id_usuario=%s"
-        params = (nombre, apellido, correo, id_usuario)
+    def update(self, id_usuario, nombre, apellido, correo, contrasena):
+        query = "UPDATE usuarios SET nombre=%s, apellido=%s, correo=%s, contrasena=%s WHERE id_usuario=%s"
+        # CORRECCIÓN: el orden debe ser nombre, apellido, correo, contrasena, id_usuario
+        params = (nombre, apellido, correo, contrasena, id_usuario)
         conn = self.db.connect()
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        conn.commit()
-        conn.close()
+        try:
+            cursor.execute(query, params)
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cursor.close()
+            conn.close()
+        return True
 
     def delete(self, id_usuario):
         query = "DELETE FROM usuarios WHERE id_usuario = %s"

@@ -10,7 +10,7 @@ from app.views.containers.miembros_container import MiembrosAulaView
 from app.controllers.aulas_usuario_controller import obtener_roles_por_usuario
 from app.views.containers.silabus_container import SyllabusCursoView
 from app.views.containers.anuncios_container import AnunciosAulaView
-
+from app.views.containers.perfil_container import PerfilUsuarioView
 
 def AulaDashboardView(page: ft.Page):
     # ------------------------------------------------------
@@ -28,6 +28,19 @@ def AulaDashboardView(page: ft.Page):
 
     selected_id = None
     current_actualizar_titulo = None
+
+    sidebar_name_text = ft.Text(nombre,
+                    size=20,
+                    weight=ft.FontWeight.BOLD,
+                    color="#FFFFFF",
+                    text_align=ft.TextAlign.CENTER,)
+    
+    sidebar_apellido_text = ft.Text(
+                    apellido,
+                    size=20,
+                    weight=ft.FontWeight.BOLD,
+                    color="#FFFFFF",
+                    text_align=ft.TextAlign.CENTER,)
 
     # ------------------------------------------------------
     # CONFIGURACIÓN DE PÁGINA
@@ -102,6 +115,16 @@ def AulaDashboardView(page: ft.Page):
             new_content = MiembrosAulaView(page, mostrar_contenido, selected_id)
         elif view_name == "Silabus":
             new_content = SyllabusCursoView(page, curso_dict, selected_id, mostrar_contenido)
+        elif view_name == "Perfil":
+            def on_user_update(u):
+                try:
+                    sidebar_name_text.value = f"{u.get('nombre','')}"
+                    sidebar_apellido_text.value = f"{u.get('apellido','')}"
+                    page.update()
+                except Exception:
+                    pass
+
+            new_content = PerfilUsuarioView(page, id_usuario, on_user_update=on_user_update)
         else:
             new_content = ft.Container(
                 content=ft.Text(f"Vista '{view_name}' en desarrollo", color="#AAAAAA"),
@@ -116,14 +139,40 @@ def AulaDashboardView(page: ft.Page):
     # ------------------------------------------------------
     list_aulas = obtener_aulas(id_usuario)
 
-    user_info = ft.Column(
-        [
-            ft.Icon(ft.Icons.ACCOUNT_CIRCLE, size=70, color="#EAEAEA"),
-            ft.Text(f"{nombre} {apellido}", size=18, color="#FFFFFF", weight=ft.FontWeight.W_500),
-        ],
-        alignment=ft.MainAxisAlignment.CENTER,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        spacing=5,
+    user_info = ft.Container(
+        content=ft.Column(
+            [
+                ft.Container(
+                    content=ft.Icon(
+                        ft.Icons.ACCOUNT_CIRCLE,
+                        size=90,
+                        color="#DDE2E4",
+                    ),
+                    alignment=ft.alignment.center,
+                ),
+                sidebar_name_text,
+                sidebar_apellido_text,
+                ft.Text(
+                    "Usuario Activo",
+                    size=13,
+                    color="#A0A6A8",
+                    text_align=ft.TextAlign.CENTER,
+                ),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=6,
+        ),
+        padding=20,
+        border_radius=12,
+        bgcolor="#10171C",
+        border=ft.border.all(1, "#1F2A32"),
+        shadow=ft.BoxShadow(
+            spread_radius=1,
+            blur_radius=6,
+            color=ft.Colors.with_opacity(0.15, "#000000"),
+            offset=ft.Offset(0, 3),
+        ),
     )
 
     btn_logout = ft.Container(
@@ -159,6 +208,7 @@ def AulaDashboardView(page: ft.Page):
                 side_button("Notificaciones"),
                 side_button("Editar Aula"),
                 ft.Container(expand=True),
+                side_button("Perfil"),
                 btn_logout,
             ],
             spacing=12,

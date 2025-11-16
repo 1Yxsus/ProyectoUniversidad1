@@ -1,6 +1,7 @@
 import flet as ft
 from app.controllers.aulas_controller import crear_aulas
 from app.utils.vald_text_fields import validar_formulario
+from app.utils.show_succes import show_success
 
 
 def DashboardOptionsView(page: ft.Page):
@@ -121,19 +122,7 @@ def DashboardOptionsView(page: ft.Page):
                 open=True,
             )
             return
-
-        page.snack_bar = ft.SnackBar(
-            content=ft.Row(
-                [
-                    ft.Icon(ft.Icons.CHECK_CIRCLE_OUTLINE, color=ft.Colors.WHITE),
-                    ft.Text(f"Aula '{nombre_aula.value.strip()}' creada con éxito.", color=ft.Colors.WHITE),
-                ],
-                spacing=10,
-            ),
-            bgcolor="#2E7D32",
-            duration=3000,
-            open=True,
-        )
+        show_success(page, "✅ Aula creada correctamente")
         cerrar_modal(e)
         page.update()
 
